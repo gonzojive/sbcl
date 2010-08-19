@@ -365,7 +365,7 @@
              (let ((ps #(.p0. .p1. .p2. .p3. .p4. .p5.)))
                (if (array-in-bounds-p ps i)
                    (aref ps i)
-                   (format-symbol *pcl-package* ".P~D." i))))
+                   (format-symbol (pcl-package) ".P~D." i))))
            ;; Check if CLASS-ARG is a constant symbol.  Give up if
            ;; not.
            (constant-class-p ()
@@ -767,12 +767,12 @@
                (let ((ps #(.d0. .d1. .d2. .d3. .d4. .d5.)))
                  (if (array-in-bounds-p ps i)
                      (aref ps i)
-                     (format-symbol *pcl-package* ".D~D." i))))
+                     (format-symbol (pcl-package) ".D~D." i))))
              (location-var-name (i)
                (let ((ls #(.l0. .l1. .l2. .l3. .l4. .l5.)))
                  (if (array-in-bounds-p ls i)
                      (aref ls i)
-                     (format-symbol *pcl-package* ".L~D." i)))))
+                     (format-symbol (pcl-package) ".L~D." i)))))
       ;; Loop over supplied initargs and values and record which
       ;; instance and class slots they initialize.
       (loop for (key value) on initargs by #'cddr

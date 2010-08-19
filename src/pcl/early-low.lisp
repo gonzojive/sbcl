@@ -42,7 +42,18 @@
 ;;;     #-SB-FLUID (FIND-PACKAGE NAME)
 ;;;     #+SB-FLUID `(FIND-PACKAGE ,NAME))
 ;;; and use that to replace all three variables.)
-(defvar *pcl-package*                (find-package "SB-PCL"))
+;;; > The above note is in regards to the old use of the *pcl-package*
+;;; > defvar instead of a more constant means of accessing the
+;;; > package.  I fixed this for the case of SB-PCL but left the
+;;; > changes for other packages for later -- RED 8-19-2010
+
+(defmacro pcl-package ()
+  "Expands into an expression for the SB-PCL package (or perhaps
+  SB!PCL during cold init)."
+  #+sb-fluid
+  `(find-package "SB-PCL")
+  #-sb-fluid
+  (find-package "SB-PCL"))
 
 (declaim (inline defstruct-classoid-p))
 (defun defstruct-classoid-p (classoid)
@@ -70,10 +81,10 @@
    (intern (apply #'format nil format-string format-arguments) package)))
 
 (defun make-class-symbol (class-name)
-  (format-symbol *pcl-package* "*THE-CLASS-~A*" (symbol-name class-name)))
+  (format-symbol (pcl-package) "*THE-CLASS-~A*" (symbol-name class-name)))
 
 (defun make-wrapper-symbol (class-name)
-  (format-symbol *pcl-package* "*THE-WRAPPER-~A*" (symbol-name class-name)))
+  (format-symbol (pcl-package) "*THE-WRAPPER-~A*" (symbol-name class-name)))
 
 (defun condition-type-p (type)
   (and (symbolp type)

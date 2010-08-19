@@ -204,7 +204,7 @@
 
 (defun get-effective-method-gensym ()
   (or (pop *rebound-effective-method-gensyms*)
-      (let ((new (format-symbol *pcl-package*
+      (let ((new (format-symbol (pcl-package)
                                 "EFFECTIVE-METHOD-GENSYM-~D"
                                 (length *global-effective-method-gensyms*))))
         (setq *global-effective-method-gensyms*

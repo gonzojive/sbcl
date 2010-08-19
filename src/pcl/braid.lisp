@@ -93,7 +93,7 @@
 (defmacro !initial-classes-and-wrappers (&rest classes)
   `(progn
      ,@(mapcar (lambda (class)
-                 (let ((wr (format-symbol *pcl-package* "~A-WRAPPER" class)))
+                 (let ((wr (format-symbol (pcl-package) "~A-WRAPPER" class)))
                    `(setf ,wr ,(if (eq class 'standard-generic-function)
                                    '*sgf-wrapper*
                                    `(boot-make-wrapper
