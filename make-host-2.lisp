@@ -2,6 +2,9 @@
 (setf *print-level* 5 *print-length* 5)
 (load "src/cold/shared.lisp")
 (in-package "SB-COLD")
+;;; output a list of files that WARM-INIT will load
+(let ((*target-obj-prefix* "obj/warm/"))
+  (output-stems-for-warm-init "output/warm-init-stems.lisp-expr"))
 ;;; FIXME: these prefixes look like non-pathnamy ways of defining a
 ;;; relative pathname.  Investigate whether they can be made relative
 ;;; pathnames.

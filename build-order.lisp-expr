@@ -764,4 +764,70 @@
  ;; anything else in cold build because after all it used to be
  ;; postponed 'til warm init with no problems.
 
- ("src/pcl/walk"))
+ ("src/pcl/walk")
+
+ ;; CLOS, derived from the PCL reference implementation
+ ;; This PCL build order is based on a particular
+ ;; (arbitrary) linearization of the declared build
+ ;; order dependencies from the old PCL defsys.lisp
+ ;; dependency database.
+
+ ("src/pcl/early-low"          :not-host :warm)
+ ("src/pcl/macros"             :not-host :warm)
+ ("src/pcl/compiler-support"   :not-host :warm)
+ ("src/pcl/low"                :not-host :warm)
+ ("src/pcl/slot-name"          :not-host :warm)
+ ("src/pcl/defclass"           :not-host :warm)
+ ("src/pcl/defs"               :not-host :warm)
+ ("src/pcl/fngen"              :not-host :warm)
+ ("src/pcl/wrapper"            :not-host :warm)
+ ("src/pcl/cache"              :not-host :warm)
+ ("src/pcl/dlisp"              :not-host :warm)
+ ("src/pcl/boot"               :not-host :warm)
+ ("src/pcl/vector"             :not-host :warm)
+ ("src/pcl/slots-boot"         :not-host :warm)
+ ("src/pcl/combin"             :not-host :warm)
+ ("src/pcl/dfun"               :not-host :warm)
+ ("src/pcl/ctor"               :not-host :warm)
+ ("src/pcl/braid"              :not-host :warm)
+ ("src/pcl/dlisp3"             :not-host :warm)
+ ("src/pcl/generic-functions"  :not-host :warm)
+ ("src/pcl/slots"              :not-host :warm)
+ ("src/pcl/init"               :not-host :warm)
+ ("src/pcl/std-class"          :not-host :warm)
+ ("src/pcl/cpl"                :not-host :warm)
+ ("src/pcl/fsc"                :not-host :warm)
+ ("src/pcl/methods"            :not-host :warm)
+ ("src/pcl/fixup"              :not-host :warm)
+ ("src/pcl/defcombin"          :not-host :warm)
+ ("src/pcl/ctypes"             :not-host :warm)
+ ("src/pcl/env"                :not-host :warm)
+ ("src/pcl/documentation"      :not-host :warm)
+ ("src/pcl/print-object"       :not-host :warm)
+ ("src/pcl/precom1"            :not-host :warm)
+ ("src/pcl/precom2"            :not-host :warm)
+
+ ;; miscellaneous functionality which depends on CLOS
+ ("src/code/force-delayed-defbangmethods" :not-host :warm)
+ ("src/code/late-condition"    :not-host :warm)
+
+ ;; CLOS-level support for the Gray OO streams
+ ;; extension (which is also supported by various
+ ;; lower-level hooks elsewhere in the code)
+ ("src/pcl/gray-streams-class" :not-host :warm)
+ ("src/pcl/gray-streams"       :not-host :warm)
+
+ ;; CLOS-level support for User-extensible sequences.
+ ("src/pcl/sequence"           :not-host :warm)
+
+ ;; other functionality not needed for cold init, moved
+ ;; to warm init to reduce peak memory requirement in
+ ;; cold init
+ ("src/code/describe"          :not-host :warm)
+ ("src/code/describe-policy"   :not-host :warm)
+ ("src/code/inspect"           :not-host :warm)
+ ("src/code/profile"           :not-host :warm)
+ ("src/code/ntrace"            :not-host :warm)
+ ("src/code/step"              :not-host :warm)
+ ("src/code/run-program"       :not-host :warm))
+

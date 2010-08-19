@@ -185,6 +185,13 @@
     ;; SBCL. ("not target code" -- but still presumably host code,
     ;; used to support the cross-compilation process)
     :not-target
+    ;; meaning: Load during the warm initialization phase of the
+    ;; target lisp instead of during cold-init.  Do not compile this
+    ;; file using the cross-compiler to be loaded by the target
+    ;; because the target will just load it on its own after it has
+    ;; bootstrapped itself in cold-init.  Does not affect loading on
+    ;; the host (:not-host flag is still necessary).
+    :warm
     ;; meaning: The #'COMPILE-STEM argument :TRACE-FILE should be T.
     ;; When the compiler is SBCL's COMPILE-FILE or something like it,
     ;; compiling "foo.lisp" will generate "foo.trace" which contains lots
@@ -265,12 +272,39 @@
       (if (gethash object-path stems)
           (error "duplicate stem ~S in *STEMS-AND-FLAGS*" stem)
           (setf (gethash object-path stems) t)))
-    ;; FIXME: We should make sure that the :assem flag is only used
-    ;; when paired with :not-host.
+    ;; assembly files are only destined for the target
+    (when (and (member :assem flags) (not (member :not-host flags)))
+      (error "stem with :ASSEM flag and no :NOT-HOST flag  in *STEMS-AND-FLAGS* stem: ~S"
+             stem))
+
+    (when (and (member :warm flags) (member :not-target flags))
+      (error "stem with :WARM flag but also :NOT-TARGET flag  in *STEMS-AND-FLAGS* stem: ~S"
+             stem))
+
     (let ((set-difference (set-difference flags *expected-stem-flags*)))
       (when set-difference
         (error "found unexpected flag(s) in *STEMS-AND-FLAGS*: ~S"
                set-difference)))))
+
+;;; Output a file with an s-expression of the stems to be loaded by
+;;; warm-init.  We do this in SB-COLD instead of during warm init
+;;; because we have the stem-parsing functions (should we care to use
+;;; them) and warm-init does not.  the build-order.lisp-expr file also
+;;; has shebang (#!+ and #!-) macros that the reader in the target
+;;; lisp cannot understand, so we output a vanilla s-expression that
+;;; it can deal with.
+(defun output-stems-for-warm-init (output-filename)
+  (let ((output-sexp nil))
+    (do-stems-and-flags (stem flags)
+      (when (member :warm flags)
+        ;; Format the stem as a list of the source and object path so
+        ;; we do not have any inconsistencies between warm/cold paths.
+        (push (list (pathname (stem-source-path stem))
+                    (pathname (stem-object-path stem flags :target-compile)))
+              output-sexp)))
+    (with-open-file (s output-filename :direction :output :if-exists :supersede)
+      (write (nreverse output-sexp) :stream s :readably t))))
+
 
 ;;;; tools to compile SBCL sources to create the cross-compiler
 
