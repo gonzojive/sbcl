@@ -772,7 +772,7 @@
  ;; order dependencies from the old PCL defsys.lisp
  ;; dependency database.
 
- ("src/pcl/early-low"          :not-host :warm)
+ ("src/pcl/early-low"          :not-host)
  ("src/pcl/macros"             :not-host :warm)
  ("src/pcl/compiler-support"   :not-host :warm)
  ("src/pcl/low"                :not-host :warm)

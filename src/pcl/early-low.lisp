@@ -24,7 +24,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 (/show "starting early-low.lisp")
 
@@ -51,9 +51,11 @@
   "Expands into an expression for the SB-PCL package (or perhaps
   SB!PCL during cold init)."
   #+sb-fluid
-  `(find-package "SB-PCL")
+  `(find-package (if (find :sb-xc *features*)
+                     "SB!PCL"
+                     "SB-PCL"))
   #-sb-fluid
-  (find-package "SB-PCL"))
+  (find-package #+sb-xc "SB!PCL" #-sb-xc "SB-PCL"))
 
 (declaim (inline defstruct-classoid-p))
 (defun defstruct-classoid-p (classoid)

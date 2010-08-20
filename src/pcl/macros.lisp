@@ -45,6 +45,8 @@
 (/show "done with DECLAIM DECLARATION")
 
 (defun get-declaration (name declarations &optional default)
+  "Returns the cdr of the first declaration with name NAME in the list
+of declarations forms DECLARATIONS."
   (dolist (d declarations default)
     (dolist (form (cdr d))
       (when (and (consp form) (eq (car form) name))
@@ -53,6 +55,9 @@
 (/show "pcl/macros.lisp 85")
 
 (defmacro doplist ((key val) plist &body body)
+  "Loops over the property list PLIST binding KEY and VAL at each
+iteration.  In addition, .plist-tail. is bound to the tail of the
+plist that has not yet been processed in the loop."
   `(let ((.plist-tail. ,plist) ,key ,val)
      (loop (when (null .plist-tail.) (return nil))
            (setq ,key (pop .plist-tail.))
@@ -64,6 +69,9 @@
 (/show "pcl/macros.lisp 101")
 
 (defmacro dolist-carefully ((var list improper-list-handler) &body body)
+  "Loops over the LIST as in DOLIST, but if the list turns out to be
+improper (current head of list isn't a cons calls the handler named by
+IMPROPER-LIST-HANDLER"
   `(let ((,var nil)
          (.dolist-carefully. ,list))
      (loop (when (null .dolist-carefully.) (return nil))
