@@ -51,22 +51,22 @@
 (defun random-fixnum ()
   (random (1+ most-positive-fixnum)))
 
-(defconstant n-fixnum-bits #.(integer-length most-positive-fixnum))
+(defconstant n-fixnum-bits (integer-length most-positive-fixnum))
 
 ;;; Lambda which executes its body (or not) randomly. Used to drop
 ;;; random cache entries.
 (defmacro randomly-punting-lambda (lambda-list &body body)
   (with-unique-names (drops drop-pos)
     `(let ((,drops (random-fixnum))
-           (,drop-pos n-fixnum-bits))
+           (,drop-pos ,n-fixnum-bits))
        (declare (fixnum ,drops)
-                (type (integer 0 #.n-fixnum-bits) ,drop-pos))
+                (type (integer 0 ,n-fixnum-bits) ,drop-pos))
        (lambda ,lambda-list
          (when (logbitp (the unsigned-byte (decf ,drop-pos)) ,drops)
            (locally ,@body))
          (when (zerop ,drop-pos)
            (setf ,drops (random-fixnum)
-                 ,drop-pos n-fixnum-bits))))))
+                 ,drop-pos ,n-fixnum-bits))))))
 
 ;;;; early definition of WRAPPER
 ;;;;
@@ -94,7 +94,7 @@
             (:copier nil))
   (instance-slots-layout nil :type list)
   (class-slots nil :type list))
-#-sb-fluid (declaim (sb-ext:freeze-type wrapper))
+#!-sb-fluid (declaim (sb-ext:freeze-type wrapper))
 
 ;;;; PCL's view of funcallable instances
 
@@ -158,7 +158,7 @@
   `(%instancep ,x))
 
 ;; a temporary definition used for debugging the bootstrap
-#+sb-show
+#!+sb-show
 (defun print-std-instance (instance stream depth)
   (declare (ignore depth))
   (print-unreadable-object (instance stream :type t :identity t)
@@ -200,13 +200,13 @@
 ;;; function. (Unlike other functions to set stuff, it does not return
 ;;; the new value.)
 (defun set-fun-name (fun new-name)
-  #+sb-doc
+  #!+sb-doc
   "Set the name of a compiled function object. Return the function."
   (when (valid-function-name-p fun)
     (setq fun (fdefinition fun)))
   (typecase fun
     (%method-function (setf (%method-function-name fun) new-name))
-    #+sb-eval
+    #!+sb-eval
     (sb-eval:interpreted-function
      (setf (sb-eval:interpreted-function-name fun) new-name))
     (funcallable-instance ;; KLUDGE: probably a generic function...

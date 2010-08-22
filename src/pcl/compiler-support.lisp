@@ -29,15 +29,15 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-C")
+(in-package "SB!C")
 
 ;;;; very low-level representation of instances with meta-class
 ;;;; STANDARD-CLASS
 
-(defknown sb-pcl::pcl-instance-p (t) boolean
+(defknown sb!pcl::pcl-instance-p (t) boolean
   (movable foldable flushable explicit-check))
 
-(deftransform sb-pcl::pcl-instance-p ((object))
+(deftransform sb!pcl::pcl-instance-p ((object))
   (let* ((otype (lvar-type object))
          (standard-object (specifier-type 'standard-object)))
     (cond
@@ -45,9 +45,9 @@
       ((csubtypep otype standard-object) t)
       ((not (types-equal-or-intersect otype standard-object)) nil)
       (t
-       `(typep (layout-of object) 'sb-pcl::wrapper)))))
+       `(typep (layout-of object) 'sb!pcl::wrapper)))))
 
-(defun sb-pcl::safe-code-p (&optional env)
+(defun sb!pcl::safe-code-p (&optional env)
   (let* ((lexenv (or env (make-null-lexenv)))
          (policy (lexenv-policy lexenv)))
     (eql (cdr (assoc 'safety policy)) 3)))
@@ -57,38 +57,38 @@
     (if arg-pos
         `(defmethod ,name ,@(subseq stuff 0 arg-pos)
            ,(handler-case
-                (nth-value 2 (sb-pcl::parse-specialized-lambda-list
+                (nth-value 2 (sb!pcl::parse-specialized-lambda-list
                               (elt stuff arg-pos)))
               (error () "<illegal syntax>")))
         `(defmethod ,name "<illegal syntax>"))))
 
-(defvar sb-pcl::*internal-pcl-generalized-fun-name-symbols* nil)
+(defvar sb!pcl::*internal-pcl-generalized-fun-name-symbols* nil)
 
 (defmacro define-internal-pcl-function-name-syntax (name &body body)
   `(progn
      (define-function-name-syntax ,name ,@body)
-     (pushnew ',name sb-pcl::*internal-pcl-generalized-fun-name-symbols*)))
+     (pushnew ',name sb!pcl::*internal-pcl-generalized-fun-name-symbols*)))
 
-(define-internal-pcl-function-name-syntax sb-pcl::slot-accessor (list)
+(define-internal-pcl-function-name-syntax sb!pcl::slot-accessor (list)
   (when (= (length list) 4)
     (destructuring-bind (class slot rwb) (cdr list)
-      (when (and (member rwb '(sb-pcl::reader sb-pcl::writer sb-pcl::boundp))
+      (when (and (member rwb '(sb!pcl::reader sb!pcl::writer sb!pcl::boundp))
                  (symbolp slot)
                  (symbolp class))
         (values t slot)))))
 
-(define-internal-pcl-function-name-syntax sb-pcl::fast-method (list)
+(define-internal-pcl-function-name-syntax sb!pcl::fast-method (list)
   (valid-function-name-p (cadr list)))
 
-(define-internal-pcl-function-name-syntax sb-pcl::slow-method (list)
+(define-internal-pcl-function-name-syntax sb!pcl::slow-method (list)
   (valid-function-name-p (cadr list)))
 
-(define-internal-pcl-function-name-syntax sb-pcl::ctor (list)
+(define-internal-pcl-function-name-syntax sb!pcl::ctor (list)
   (let ((class-or-name (cadr list)))
     (cond
       ((symbolp class-or-name)
        (values (valid-function-name-p class-or-name) nil))
-      ((or (sb-pcl::std-instance-p class-or-name)
-           (sb-pcl::fsc-instance-p class-or-name))
+      ((or (sb!pcl::std-instance-p class-or-name)
+           (sb!pcl::fsc-instance-p class-or-name))
        (values t nil)))))
 

@@ -48,22 +48,22 @@
 ;;; > changes for other packages for later.
 ;;; > ... on second thought I left it as a defvar, but use the macro
 ;;; > still.  This makes it possible to cold-compile this file -- RED
-;;; > 8-19-2010
+;;; >' 8-19-2010
 
-(defvar *pcl-package* (find-package #+sb-xc "SB!PCL" #-sb-xc "SB-PCL"))
+(defvar *pcl-package* (find-package #!+sb-xc "SB!PCL" #!-sb-xc "SB-PCL"))
 
 (defmacro pcl-package ()
   "Expands into an expression for the SB-PCL package (or perhaps
   SB!PCL during cold init)."
-  #+sb-fluid
+  #!+sb-fluid
   `(find-package (if (find :sb-xc *features*)
                      "SB!PCL"
                      "SB-PCL"))
   ;;FIXME: We should use a constant means of referencing the package,
   ;;but I'm punting on that for now because right now we cannot
   ;;compile a reference to a package instance with the XC. Would be
-  ;;(unquoted) (find-package #+sb-xc "SB!PCL" #-sb-xc "SB-PCL")) if we could
-  #-sb-fluid
+  ;;(unquoted) (find-package #!+sb-xc "SB!PCL" #!-sb-xc "SB-PCL")) if we could
+  #!-sb-fluid
   '*pcl-package*)
 
 (declaim (inline defstruct-classoid-p))

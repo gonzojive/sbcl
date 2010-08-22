@@ -41,3 +41,4 @@ contrib/*/a.out
 contrib/*/a.exe
 contrib/asdf/asdf-upstream
 contrib/sb-cover/test-output
+tests/threads-foreign.so
