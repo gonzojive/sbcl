@@ -101,53 +101,89 @@
   (and (symbolp type)
        (condition-classoid-p (find-classoid type nil))))
 
-(declaim (special *the-class-t*
-                  *the-class-vector* *the-class-symbol*
-                  *the-class-string* *the-class-sequence*
-                  *the-class-rational* *the-class-ratio*
-                  *the-class-number* *the-class-null* *the-class-list*
-                  *the-class-integer* *the-class-float* *the-class-cons*
-                  *the-class-complex* *the-class-character*
-                  *the-class-bit-vector* *the-class-array*
-                  *the-class-stream* *the-class-file-stream*
-                  *the-class-string-stream*
 
-                  *the-class-slot-object*
-                  *the-class-structure-object*
-                  *the-class-standard-object*
-                  *the-class-funcallable-standard-object*
-                  *the-class-class*
-                  *the-class-generic-function*
-                  *the-class-built-in-class*
-                  *the-class-slot-class*
-                  *the-class-condition-class*
-                  *the-class-structure-class*
-                  *the-class-std-class*
-                  *the-class-standard-class*
-                  *the-class-funcallable-standard-class*
-                  *the-class-forward-referenced-class*
-                  *the-class-method*
-                  *the-class-standard-method*
-                  *the-class-standard-reader-method*
-                  *the-class-standard-writer-method*
-                  *the-class-standard-boundp-method*
-                  *the-class-global-reader-method*
-                  *the-class-global-writer-method*
-                  *the-class-global-boundp-method*
-                  *the-class-standard-generic-function*
-                  *the-class-standard-effective-slot-definition*
+;;; FIXME: According to the currnet definition of DECLAIM, this will
+;;; expand into a call to `(sb!xc:proclaim ',spec) at compile, load,
+;;; and execute.  But sb!xc:proclaim (quite correctly) only declaims 
+;;; things 
+;;;
+;;; CL-USER> (sb-c::info :variable :kind 'sb!pcl::*the-class-structure-object*)
+;;; :UNKNOWN
+;;; NIL
+;;; CL-USER> (sb!c::info :variable :kind 'sb!pcl::*the-class-structure-object*)
+;;; :SPECIAL
+;;; T
 
-                  *the-eslotd-standard-class-slots*
-                  *the-eslotd-funcallable-standard-class-slots*))
+;;; We used to use a plain declaim here, but that is now inadequate
+;;; because it has somewhat weird behavior when building target code
+;;; from the cross-compiler, as we now do for PCL.  Specifically,
+;;; DECLAIM was not effecting specials in the host lisp unless (at
+;;; least on SBCL) surrounding it with an (eval-when
+;;; (:compile-toplevel ..))  Add to this that DECLAIM does not
+;;; guarantee that the declarations persist after loading this file,
+;;; and I see ample reason to use proclaim instead.  -- RED 2010-08-22
+(defmacro declaim-host-and-target (form)
+  `(progn
+     (eval-when (:compile-toplevel)
+       (sb!xc:proclaim ',form)
+       (proclaim ',form))
+     (eval-when (:load-toplevel :execute)
+       (proclaim ',form))))
 
-(declaim (special *the-wrapper-of-t*
-                  *the-wrapper-of-vector* *the-wrapper-of-symbol*
-                  *the-wrapper-of-string* *the-wrapper-of-sequence*
-                  *the-wrapper-of-rational* *the-wrapper-of-ratio*
-                  *the-wrapper-of-number* *the-wrapper-of-null*
-                  *the-wrapper-of-list* *the-wrapper-of-integer*
-                  *the-wrapper-of-float* *the-wrapper-of-cons*
-                  *the-wrapper-of-complex* *the-wrapper-of-character*
-                  *the-wrapper-of-bit-vector* *the-wrapper-of-array*))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  ;; Proclaim all this on the host and the target, since we use a lot
+  ;; of these specials at compile-time (host)
+  (flet ((proclaim-host-and-target (raw-form)
+           (proclaim raw-form)
+           (sb!xc:proclaim raw-form)))
+    (proclaim-host-and-target '(special
+                                *the-class-t*
+                                *the-class-vector* *the-class-symbol*
+                                *the-class-string* *the-class-sequence*
+                                *the-class-rational* *the-class-ratio*
+                                *the-class-number* *the-class-null* *the-class-list*
+                                *the-class-integer* *the-class-float* *the-class-cons*
+                                *the-class-complex* *the-class-character*
+                                *the-class-bit-vector* *the-class-array*
+                                *the-class-stream* *the-class-file-stream*
+                                *the-class-string-stream*
+
+                                *the-class-slot-object*
+                                *the-class-structure-object*
+                                *the-class-standard-object*
+                                *the-class-funcallable-standard-object*
+                                *the-class-class*
+                                *the-class-generic-function*
+                                *the-class-built-in-class*
+                                *the-class-slot-class*
+                                *the-class-condition-class*
+                                *the-class-structure-class*
+                                *the-class-std-class*
+                                *the-class-standard-class*
+                                *the-class-funcallable-standard-class*
+                                *the-class-forward-referenced-class*
+                                *the-class-method*
+                                *the-class-standard-method*
+                                *the-class-standard-reader-method*
+                                *the-class-standard-writer-method*
+                                *the-class-standard-boundp-method*
+                                *the-class-global-reader-method*
+                                *the-class-global-writer-method*
+                                *the-class-global-boundp-method*
+                                *the-class-standard-generic-function*
+                                *the-class-standard-effective-slot-definition*
+
+                                *the-eslotd-standard-class-slots*
+                                *the-eslotd-funcallable-standard-class-slots*
+
+                                *the-wrapper-of-t*
+                                *the-wrapper-of-vector* *the-wrapper-of-symbol*
+                                *the-wrapper-of-string* *the-wrapper-of-sequence*
+                                *the-wrapper-of-rational* *the-wrapper-of-ratio*
+                                *the-wrapper-of-number* *the-wrapper-of-null*
+                                *the-wrapper-of-list* *the-wrapper-of-integer*
+                                *the-wrapper-of-float* *the-wrapper-of-cons*
+                                *the-wrapper-of-complex* *the-wrapper-of-character*
+                                *the-wrapper-of-bit-vector* *the-wrapper-of-array*))))
 
 (/show "finished with early-low.lisp")

@@ -21,7 +21,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 ;;; (These are left over from the days when PCL was an add-on package
 ;;; for a pre-CLOS Common Lisp. They shouldn't happen in a normal
@@ -38,7 +38,7 @@
            has already been partially loaded. This may not work, you may~%~
            need to get a fresh lisp (reboot) and then load PCL."))
 
-#-sb-fluid (declaim (inline gdefinition))
+#!-sb-fluid (declaim (inline gdefinition))
 (defun gdefinition (spec)
   ;; This is null layer right now, but once FDEFINITION stops bypasssing
   ;; fwrappers/encapsulations we can do that here.
@@ -48,7 +48,7 @@
   ;; This is almost a null layer right now, but once (SETF
   ;; FDEFINITION) stops bypasssing fwrappers/encapsulations we can do
   ;; that here.
-  (sb-c::note-name-defined spec :function) ; FIXME: do we need this? Why?
+  (sb!c::note-name-defined spec :function) ; FIXME: do we need this? Why?
   (setf (fdefinition spec) new-value))
 
 ;;;; type specifier hackery
@@ -153,7 +153,7 @@
 ;;; SUBTYPEP in place of just returning (VALUES NIL NIL) can be very
 ;;; slow. *SUBTYPEP is used by PCL itself, and must be fast.
 ;;;
-;;; FIXME: SB-KERNEL has fast-and-not-quite-precise type code for use
+;;; FIXME: SB!KERNEL has fast-and-not-quite-precise type code for use
 ;;; in the compiler. Could we share some of it here?
 (defvar *in-*subtypep* nil)
 
@@ -207,9 +207,9 @@
 
 ;;;; built-in classes
 
-;;; Grovel over SB-KERNEL::*BUILT-IN-CLASSES* in order to set
-;;; SB-PCL:*BUILT-IN-CLASSES*.
-(/show "about to set up SB-PCL::*BUILT-IN-CLASSES*")
+;;; Grovel over SB!KERNEL::*BUILT-IN-CLASSES* in order to set
+;;; SB!PCL:*BUILT-IN-CLASSES*.
+(/show "about to set up SB!PCL::*BUILT-IN-CLASSES*")
 (defvar *built-in-classes*
   (labels ((direct-supers (class)
              (/noshow "entering DIRECT-SUPERS" (classoid-name class))
@@ -262,8 +262,8 @@
                                  ;; CMU CL code did. -- WHN 20000715
                                  '(t function stream
                                      file-stream string-stream)))
-                       sb-kernel::*built-in-classes*))))
-(/noshow "done setting up SB-PCL::*BUILT-IN-CLASSES*")
+                       sb!kernel::*built-in-classes*))))
+(/noshow "done setting up SB!PCL::*BUILT-IN-CLASSES*")
 
 ;;;; the classes that define the kernel of the metabraid
 
@@ -357,7 +357,7 @@
     :accessor gf-dfun-state)
    ;; Used to make DFUN-STATE & FIN-FUNCTION updates atomic.
    (%lock
-    :initform (sb-thread::make-spinlock :name "GF lock")
+    :initform (sb!thread::make-spinlock :name "GF lock")
     :reader gf-lock)
    ;; Set to true by ADD-METHOD, REMOVE-METHOD; to false by
    ;; MAYBE-UPDATE-INFO-FOR-GF.
@@ -575,12 +575,12 @@
 (defvar *eql-specializer-table* (make-hash-table :test 'eql))
 
 (defvar *eql-specializer-table-lock*
-  (sb-thread::make-spinlock :name "EQL-specializer table lock"))
+  (sb!thread::make-spinlock :name "EQL-specializer table lock"))
 
 (defun intern-eql-specializer (object)
   ;; Need to lock, so that two threads don't get non-EQ specializers
   ;; for an EQL object.
-  (sb-thread::with-spinlock (*eql-specializer-table-lock*)
+  (sb!thread::with-spinlock (*eql-specializer-table-lock*)
     (or (gethash object *eql-specializer-table*)
         (setf (gethash object *eql-specializer-table*)
               (make-instance 'eql-specializer :object object)))))

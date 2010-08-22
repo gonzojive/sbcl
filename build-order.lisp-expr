@@ -772,13 +772,14 @@
  ;; order dependencies from the old PCL defsys.lisp
  ;; dependency database.
 
+ ("src/pcl/declarations") ; processed even on the host for the sake of proclaiming thingsed used in macros
  ("src/pcl/early-low"          :not-host)
  ("src/pcl/macros"             :not-host)
  ("src/pcl/compiler-support"   :not-host)
- ("src/pcl/low"                :not-host :warm)
- ("src/pcl/slot-name"          :not-host :warm)
- ("src/pcl/defclass"           :not-host :warm)
- ("src/pcl/defs"               :not-host :warm)
+ ("src/pcl/low"                :not-host)
+ ("src/pcl/slot-name"          :not-host)
+ ("src/pcl/defclass"           :not-host)
+ ("src/pcl/defs"               :not-host)
  ("src/pcl/fngen"              :not-host :warm)
  ("src/pcl/wrapper"            :not-host :warm)
  ("src/pcl/cache"              :not-host :warm)

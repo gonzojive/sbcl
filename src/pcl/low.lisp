@@ -35,7 +35,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 (defvar *optimize-speed*
@@ -75,7 +75,7 @@
 ;;;; compiled efficiently.
 
 ;;; Note that for SBCL, as for CMU CL, the WRAPPER of a built-in or
-;;; structure class will be some other kind of SB-KERNEL:LAYOUT, but
+;;; structure class will be some other kind of SB!KERNEL:LAYOUT, but
 ;;; this shouldn't matter, since the only two slots that WRAPPER adds
 ;;; are meaningless in those cases.
 (defstruct (wrapper
@@ -94,7 +94,7 @@
             (:copier nil))
   (instance-slots-layout nil :type list)
   (class-slots nil :type list))
-#!-sb-fluid (declaim (sb-ext:freeze-type wrapper))
+#!-sb-fluid (declaim (sb!ext:freeze-type wrapper))
 
 ;;;; PCL's view of funcallable instances
 
@@ -117,7 +117,7 @@
   ;; (!) as of sbcl-0.pre7.63, so for now it's academic.)
   :runtime-type-checks-p nil)
 
-(import 'sb-kernel:funcallable-instance-p)
+(import 'sb!kernel:funcallable-instance-p)
 
 (defun set-funcallable-instance-function (fin new-value)
   (declare (type function new-value))
@@ -207,8 +207,8 @@
   (typecase fun
     (%method-function (setf (%method-function-name fun) new-name))
     #!+sb-eval
-    (sb-eval:interpreted-function
-     (setf (sb-eval:interpreted-function-name fun) new-name))
+    (sb!eval:interpreted-function
+     (setf (sb!eval:interpreted-function-name fun) new-name))
     (funcallable-instance ;; KLUDGE: probably a generic function...
      (cond ((if (eq **boot-state** 'complete)
                 (typep fun 'generic-function)
@@ -316,7 +316,7 @@
   (random most-positive-fixnum
           *instance-hash-code-random-state*))
 
-(defun sb-impl::sxhash-instance (x)
+(defun sb!impl::sxhash-instance (x)
   (cond
     ((std-instance-p x) (std-instance-hash x))
     ((fsc-instance-p x) (fsc-instance-hash x))

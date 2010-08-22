@@ -21,7 +21,8 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+;(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 ;;;; DEFCLASS macro and close personal friends
 
@@ -72,7 +73,7 @@
                                 ',*readers-for-this-defclass*
                                 ',*writers-for-this-defclass*
                                 ',*slot-names-for-this-defclass*
-                                (sb-c:source-location)
+                                (sb!c:source-location)
                                 ',(safe-code-p env)))))
         (if defstruct-p
             (progn
@@ -236,7 +237,7 @@
                     nil
                     `('type-check-function (lambda (value)
                                              (declare (type ,type value)
-                                                      (optimize (sb-c:store-coverage-data 0)))
+                                                      (optimize (sb!c:store-coverage-data 0)))
                                              value))))
                (canon `(:name ',name :readers ',readers :writers ',writers
                               :initargs ',initargs
@@ -286,7 +287,7 @@
                                (gensym)
                                `(function (lambda ()
                                   (declare (optimize
-                                            (sb-c:store-coverage-data 0)))
+                                            (sb!c:store-coverage-data 0)))
                                   ,initform))))
              (push entry *initfunctions-for-this-defclass*))
            (cadr entry)))))
