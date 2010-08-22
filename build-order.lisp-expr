@@ -773,7 +773,7 @@
  ;; dependency database.
 
  ("src/pcl/early-low"          :not-host)
- ("src/pcl/macros"             :not-host :warm)
+ ("src/pcl/macros"             :not-host)
  ("src/pcl/compiler-support"   :not-host :warm)
  ("src/pcl/low"                :not-host :warm)
  ("src/pcl/slot-name"          :not-host :warm)

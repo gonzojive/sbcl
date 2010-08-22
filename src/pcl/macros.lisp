@@ -24,7 +24,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 (/show "starting pcl/macros.lisp")
 
@@ -119,16 +119,19 @@ IMPROPER-LIST-HANDLER"
 ;;;
 ;;; Possible values are NIL, EARLY, BRAID, or COMPLETE.
 (declaim (type (member nil early braid complete) **boot-state**))
-(defglobal **boot-state** nil)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defglobal **boot-state** nil))
+
 
 (/show "pcl/macros.lisp 187")
 
 (define-compiler-macro find-class (&whole form
-                                   symbol &optional (errorp t) environment)
+                                          symbol &optional (errorp t) environment)
   (declare (ignore environment))
   (if (and (constantp symbol)
            (legal-class-name-p (setf symbol (constant-form-value symbol)))
            (constantp errorp)
+           (boundp '**boot-state**)
            (member **boot-state** '(braid complete)))
       (let ((errorp (not (null (constant-form-value errorp))))
             (cell (make-symbol "CLASSOID-CELL")))
