@@ -1025,6 +1025,11 @@
 ;;; :DIRECT-SUPERCLASSES (default to head of CPL)
 ;;;     List of the direct superclasses of this class.
 ;;;
+;;; :PROTOTYPE-FORM
+;;;     Used by PCL when groveling over this list to produce true CLOS
+;;;     classes.  Evaluated, at the moment, during warm init to create
+;;;     an instance of the class
+;;;
 ;;; FIXME: This doesn't seem to be needed after cold init (and so can
 ;;; probably be uninterned at the end of cold init).
 (defvar *built-in-classes*)

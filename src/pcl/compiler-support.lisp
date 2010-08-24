@@ -53,12 +53,14 @@
   ;;; cross-compiling with SBCL, luckily we can verify our assumption
   ;;; for debugging purposes.  On the host, we have it all so proceed
   ;;; as usual
-  #+(and sb-xc-host sbcl)
-  (let* ((lexenv (or env (sb-kernel:make-null-lexenv)))
-         (policy (sb-c::lexenv-policy lexenv)))
-    (aver (not (eql (cdr (assoc 'safety policy)) 3)))
-    nil)
-  #+(and sb-xc-host (not sbcl))
+;  #+sb-xc-host
+;  (progn
+;    #+sbcl
+;    (let* ((lexenv (or env (sb-kernel:make-null-lexenv)))
+;           (policy (sb-c::lexenv-policy lexenv)))
+;      (aver (not (eql (cdr (assoc 'safety policy)) 3)))
+;      nil))
+  #+sb-xc-host
   nil
   #+sb-xc
   (let* ((lexenv (or env (make-null-lexenv)))

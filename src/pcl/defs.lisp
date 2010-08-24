@@ -208,9 +208,19 @@
 ;;;; built-in classes
 
 ;;; Grovel over SB!KERNEL::*BUILT-IN-CLASSES* in order to set
-;;; SB!PCL:*BUILT-IN-CLASSES*.
+;;; SB!PCL:*BUILT-IN-CLASSES*.  The result is a list where each member
+;;; of the list is of the form
+;;; (class-name
+;;;  names-of-direct-supers
+;;;  names-of-direct-subs
+;;;  names-of-classes-of-inherited-layouts
+;;;  prototype object)
 (/show "about to set up SB!PCL::*BUILT-IN-CLASSES*")
+#+sb-xc  ;; for now we don't need this.  wrry about it when we have to BRAID
 (defvar *built-in-classes*
+  (locally
+      (declare (optimize (debug 3)))
+    ;;
   (labels ((direct-supers (class)
              (/noshow "entering DIRECT-SUPERS" (classoid-name class))
              (if (typep class 'built-in-classoid)
@@ -262,7 +272,7 @@
                                  ;; CMU CL code did. -- WHN 20000715
                                  '(t function stream
                                      file-stream string-stream)))
-                       sb!kernel::*built-in-classes*))))
+                       sb!kernel::*built-in-classes*)))))
 (/noshow "done setting up SB!PCL::*BUILT-IN-CLASSES*")
 
 ;;;; the classes that define the kernel of the metabraid

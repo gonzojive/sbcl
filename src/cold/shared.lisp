@@ -442,15 +442,28 @@
 ;;; (if necessary) in the appropriate environment, then loading it
 ;;; into the cross-compilation host Common lisp.
 (defun host-cload-stem (stem flags)
-  (let ((compiled-filename (in-host-compilation-mode
-                            (lambda ()
-                              (compile-stem stem flags :host-compile)))))
-    (load compiled-filename)))
+  (tagbody
+     cload-stem
+     (restart-case
+         (let ((compiled-filename (in-host-compilation-mode
+                                   (lambda ()
+                                     (compile-stem stem flags :host-compile)))))
+           (load compiled-filename))
+       (retry ()
+         :report (lambda (s) (format s "Retry loading stem ~S" stem))
+         (go cload-stem)))))
 (compile 'host-cload-stem)
 
 ;;; like HOST-CLOAD-STEM, except that we don't bother to compile
 (defun host-load-stem (stem flags)
-  (load (stem-object-path stem flags :host-compile)))
+  (tagbody
+     load-stem
+     (restart-case
+         (load (stem-object-path stem flags :host-compile))
+       (retry ()
+         :report (lambda (s) (format s "Retry loading stem ~S" stem))
+         (go load-stem)))))
+
 (compile 'host-load-stem)
 
 ;;;; tools to compile SBCL sources to create object files which will

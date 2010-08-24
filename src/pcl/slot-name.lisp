@@ -35,7 +35,7 @@ a particular slot."
   (declare (type symbol slot-name))
   (unless (symbol-package slot-name)
     (error "On the host, slot symbols must have a package and ~S lacks one" slot-name))
-  (intern (format nil "~A::~A slot ~a" 
+  (intern (format nil "~A::~A slot ~a"
                         (package-name (symbol-package slot-name))
                         (symbol-name slot-name)
                         type)

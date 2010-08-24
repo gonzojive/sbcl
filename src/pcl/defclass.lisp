@@ -181,6 +181,8 @@
       (values (or metaclass 'standard-class) (nreverse canonized-options))))
 
 (defun canonize-defclass-slots (class-name slots env)
+  #-sb-xc
+  (declare (ignore env))
   (let (canonized-specs)
     (dolist (spec slots)
       (when (atom spec)
@@ -201,6 +203,7 @@
              (unsupplied (list nil))
              (type t)
              (initform unsupplied))
+        #+sb-xc
         (check-slot-name-for-defclass name class-name env)
         (push name *slot-names-for-this-defclass*)
         (flet ((note-reader (x)
@@ -264,6 +267,7 @@
     (nreverse canonized-specs)))
 
 
+#+sb-xc
 (defun check-slot-name-for-defclass (name class-name env)
   (flet ((slot-name-illegal (reason)
            (error 'simple-program-error
@@ -322,6 +326,9 @@
   ;; actual type as a compile-time side-effect would probably be a bad
   ;; idea and (2) anyway we don't need to modify it in order to make
   ;; NAME be recognized as a valid type name)
+
+  ;; FIXME how to obtain this behavior on the host?  Do we need to do
+  ;; anything like this?
   (unless (info :type :kind name)
     ;; Tell the compiler to expect a class with the given NAME, by
     ;; writing a kind of minimal placeholder type information. This
