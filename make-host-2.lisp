@@ -44,7 +44,9 @@
         #!-sb-fluid
         (sb!ext:*derive-function-types* t)
         ;; Let the target know that we're the cross-compiler.
-        (*features* (cons :sb-xc *features*))
+        (*features* (cons :sb-xc
+                          ;; DEBUG: sb-xc-host is not present unless you have pushed it yourself for debugging
+                          (remove :sb-xc-host *features*)))
         ;; We need to tweak the readtable..
         (*readtable* (copy-readtable)))
     ;; ..in order to make backquotes expand into target code
