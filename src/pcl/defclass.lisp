@@ -41,7 +41,14 @@
 ;;; After the metabraid has been setup, and the protocol for defining
 ;;; classes has been defined, the real definition of LOAD-DEFCLASS is
 ;;; installed by the file std-class.lisp
+#-sb-xc-host
 (defmacro defclass (&environment env name direct-superclasses direct-slots &rest options)
+  (%defclass-expander env name direct-superclasses direct-slots options))
+
+(defmacro def!class (&environment env name direct-superclasses direct-slots &rest options)
+  (%defclass-expander env name direct-superclasses direct-slots options))
+
+(defun %defclass-expander (env name direct-superclasses direct-slots options)
   (let (*initfunctions-for-this-defclass*
         *readers-for-this-defclass* ;Truly a crock, but we got
         *writers-for-this-defclass* ;to have it to live nicely.

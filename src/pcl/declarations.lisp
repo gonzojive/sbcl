@@ -29,7 +29,7 @@
 ;;; FIXME: According to the currnet definition of DECLAIM, declaim
 ;;; expands into a call to `(sb!xc:proclaim ',spec) at compile, load,
 ;;; and execute.  But sb!xc:proclaim (quite correctly) only declaims
-;;; things for the target.  We thus define declaim-host-and-target 
+;;; things for the target.  We thus define declaim-host-and-target
 ;;;
 ;;; CL-USER> (sb-c::info :variable :kind 'sb!pcl::*the-class-structure-object*)
 ;;; :UNKNOWN
@@ -102,4 +102,4 @@
                           *the-wrapper-of-list* *the-wrapper-of-integer*
                           *the-wrapper-of-float* *the-wrapper-of-cons*
                           *the-wrapper-of-complex* *the-wrapper-of-character*
-                          *the-wrapper-of-bit-vector* *the-wrapper-of-array*))))
+                          *the-wrapper-of-bit-vector* *the-wrapper-of-array*))

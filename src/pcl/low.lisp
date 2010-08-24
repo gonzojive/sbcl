@@ -51,7 +51,7 @@
 (defun random-fixnum ()
   (random (1+ most-positive-fixnum)))
 
-(defconstant n-fixnum-bits (integer-length most-positive-fixnum))
+(def!constant n-fixnum-bits (integer-length sb-xc:most-positive-fixnum))
 
 ;;; Lambda which executes its body (or not) randomly. Used to drop
 ;;; random cache entries.

@@ -28,6 +28,8 @@
 
 (/show "starting pcl/macros.lisp")
 
+;; FIXME: DECLAIM is not very ANSI of us since it only guarantees
+;; declarations for this file
 (declaim (declaration
           ;; As of sbcl-0.7.0.6, SBCL actively uses this declaration
           ;; to propagate information needed to set up nice debug
@@ -108,6 +110,12 @@ IMPROPER-LIST-HANDLER"
             (t
              (error "~S is not a legal class name." symbol)))))
 
+;;; FIXME: Only compile CL-conflicting stuff to target for now.  We
+;;; might want to find a way to shadow find-class on the host so we
+;;; can use our versions of find-class etc in code that uses SB!PCL
+;;; (SB-PCL wouldn't shadow CL's symbols, but define them).  There's
+;;; probably a way to do this already, but RED doesn't know about it.
+#+sb-xc
 (defun find-class (symbol &optional (errorp t) environment)
   (declare (ignore environment))
   (find-class-from-cell symbol
@@ -119,12 +127,14 @@ IMPROPER-LIST-HANDLER"
 ;;;
 ;;; Possible values are NIL, EARLY, BRAID, or COMPLETE.
 (declaim (type (member nil early braid complete) **boot-state**))
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defglobal **boot-state** nil))
+(defglobal **boot-state** nil)
 
 
 (/show "pcl/macros.lisp 187")
 
+;;; FIXME: defining compiler macros for CL forms has unspecified
+;;; behavior (could be an error
+#+sb-xc
 (define-compiler-macro find-class (&whole form
                                           symbol &optional (errorp t) environment)
   (declare (ignore environment))
@@ -147,6 +157,7 @@ IMPROPER-LIST-HANDLER"
 (defun class-classoid (class)
   (layout-classoid (class-wrapper class)))
 
+#+sb-xc
 (defun (setf find-class) (new-value name &optional errorp environment)
   (declare (ignore errorp environment))
   (cond ((legal-class-name-p name)
@@ -183,6 +194,7 @@ IMPROPER-LIST-HANDLER"
 (defun get-setf-fun-name (name)
   `(setf ,name))
 
+#+sb-xc
 (defsetf slot-value set-slot-value)
 
 (/show "finished with pcl/macros.lisp")

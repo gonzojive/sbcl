@@ -773,9 +773,9 @@
  ;; dependency database.
 
  ("src/pcl/declarations") ; processed even on the host for the sake of proclaiming thingsed used in macros
- ("src/pcl/early-low"          :not-host)
- ("src/pcl/macros"             :not-host)
- ("src/pcl/compiler-support"   :not-host)
+ ("src/pcl/early-low")
+ ("src/pcl/macros")
+ ("src/pcl/compiler-support")
  ("src/pcl/low"                :not-host)
  ("src/pcl/slot-name"          :not-host)
  ("src/pcl/defclass"           :not-host)

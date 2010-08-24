@@ -1,0 +1,39 @@
+(in-package :sb-pcl)
+
+SB-PCL:CANONIZE-DEFCLASS-SLOTS
+Notes on moving PCL into the cold image:
+
+There is an aweful kludge in PCL's defclass when DEFSTRUCT-P is true,
+which EVALS a the defclass form at macroexpansion time in order to
+properly determine the class's most-direct superclass and also slot
+names.
+
+
+Functions that need to be moved over
+sb-pcl::*SUBTYPEP  -- defs.lisp 
+SPECIALIZER-APPLICABLE-USING-TYPE-P
+
+----------
+
+ugly stuff from eval@ macro expansion time
+CLASS-DIRECT-SLOTS 
+MAKE-STRUCTURE-CLASS-DEFSTRUCT-FORM
+
+
+------------
+
+sb-pcl::CANONIZE-DEFCLASS-OPTIONS
+sb-pcl::CLASS-DIRECT-SLOTS
+sb-pcl::MAKE-STRUCTURE-CLASS-DEFSTRUCT-FORM
+
+*SUBTYPEP CANONIZE-DEFCLASS-OPTIONS CANONIZE-DEFCLASS-SLOTS CLASS-DIRECT-SLOTS MAKE-STRUCTURE-CLASS-DEFSTRUCT-FORM
+
+(SETF CLOS-SLOTS-REF)
+ *SUBTYPEP
+ CLASS-DIRECT-SLOTS
+ CLOS-SLOTS-REF
+ GET-SLOTS
+ MAKE-STRUCTURE-CLASS-DEFSTRUCT-FORM
+ SLOT-BOUNDP-NAME
+ SLOT-READER-NAME
+ SLOT-WRITER-NAME
