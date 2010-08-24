@@ -37,3 +37,98 @@ sb-pcl::MAKE-STRUCTURE-CLASS-DEFSTRUCT-FORM
  SLOT-BOUNDP-NAME
  SLOT-READER-NAME
  SLOT-WRITER-NAME
+
+
+------------
+Use this function to find common undefined functions:
+
+(defparameter *pcl-order*
+  '(("declarations.lisp") ; processed even on the host for the sake of proclaiming thingsed used in macros
+    ("early-low.lisp")
+    ("macros.lisp")
+    ("compiler-support.lisp")
+    ("low.lisp")
+    ("slot-name.lisp"         :not-host)
+    ("defclass.lisp"          :not-host)
+    ("defs.lisp"              :not-host)
+    ("fngen.lisp"             :not-host :warm)
+    ("wrapper.lisp"           :not-host :warm)
+    ("cache.lisp"             :not-host :warm)
+    ("dlisp.lisp"             :not-host :warm)
+    ("boot.lisp"              :not-host :warm)
+    ("vector.lisp"            :not-host :warm)
+    ("slots-boot.lisp"        :not-host :warm)
+    ("combin.lisp"            :not-host :warm)
+    ("dfun.lisp"              :not-host :warm)
+    ("ctor.lisp"              :not-host :warm)
+    ("braid.lisp"             :not-host :warm)
+    ("dlisp3.lisp"            :not-host :warm)
+    ("generic-functions.lisp" :not-host :warm)
+    ("slots.lisp"             :not-host :warm)
+    ("init.lisp"              :not-host :warm)
+    ("std-class.lisp"         :not-host :warm)
+    ("cpl.lisp"               :not-host :warm)
+    ("fsc.lisp"               :not-host :warm)
+    ("methods.lisp"           :not-host :warm)
+    ("fixup.lisp"             :not-host :warm)
+    ("defcombin.lisp"         :not-host :warm)
+    ("ctypes.lisp"            :not-host :warm)
+    ("env.lisp"               :not-host :warm)
+    ("documentation.lisp"     :not-host :warm)
+    ("print-object.lisp"      :not-host :warm)
+    ("precom1.lisp"           :not-host :warm)
+    ("precom2.lisp"           :not-host :warm)))
+
+(in-package :cl-user)
+
+(defun pcl-file< (f1 f2)
+  (let ((p1 (position f1 *pcl-order* :test #'equal :key #'car))
+        (p2 (position f2 *pcl-order* :test #'equal :key #'car)))
+    (cond
+      ((and (not p1) (not p2)) nil)
+      ((and (not p1) p2) nil)
+      ((and p1 (not p2)) nil)
+      (t (< p1 p2)))))
+
+
+(defun report-undefined-functions (source-file)
+  "Reports where the undefines functions can be found."
+  (when (integerp source-file)
+    (setf source-file (format nil "/git/sbcl/src/pcl/~A"
+                              (car (elt *pcl-order* source-file)))))
+  (let ((undefined-functions nil))
+    (restart-case
+        (handler-bind ((style-warning #'(lambda (e)
+                                          (cond
+                                            ((and (equal "undefined ~(~A~): ~S"
+                                                         (simple-condition-format-control e))
+                                                  (eql :function (first (simple-condition-format-arguments e))))
+                                             (push (second (simple-condition-format-arguments e))
+                                                   undefined-functions))
+                                            (t (invoke-debugger e))))))
+          (compile-file source-file)
+          (invoke-restart 'abort-and-report-undefined)) ;"/git/sbcl/src/pcl/macros.lisp"))
+      (abort-and-report-undefined ()
+        :report "Report the undefined functions observed while loading the file."
+        (when undefined-functions
+          (let ((file->defs (make-hash-table :test 'equal)))
+            (dolist (f undefined-functions)
+              (let ((pkg-name (and (symbolp f) (package-name (symbol-package f)))))
+                (if (and pkg-name (null (mismatch "SB!" pkg-name :end2 3)))
+                    (let ((sb-dash-version (intern (symbol-name f)
+                                                   (find-package (format nil "SB-~A" (subseq pkg-name 3))))))
+                      (mapc #'(lambda (def)
+                                (let ((pn (sb-introspect:definition-source-pathname def)))
+                                  (when pn
+                                    (push sb-dash-version
+                                          (gethash (format nil "~A.lisp" (string-downcase (pathname-name pn)))
+                                                   file->defs)))))
+                            (append (sb-introspect:find-definition-sources-by-name sb-dash-version :function)
+                                    (sb-introspect:find-definition-sources-by-name sb-dash-version :method))))
+                    (format t "Could not find location for ~S~%" f))))
+            (format t "Undefined functions in ~A:~%" source-file)
+            (loop :for (file . fns) :in (sort (alexandria:hash-table-alist file->defs) #'pcl-file<)
+                  :do (format t "   ~A (~A) => ~S~%"
+                              file
+                              (position file *pcl-order* :key #'car :test 'equal)
+                              fns))))))))

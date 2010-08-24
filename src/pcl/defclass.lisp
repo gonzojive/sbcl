@@ -49,6 +49,8 @@
   (%defclass-expander env name direct-superclasses direct-slots options))
 
 (defun %defclass-expander (env name direct-superclasses direct-slots options)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
   (let (*initfunctions-for-this-defclass*
         *readers-for-this-defclass* ;Truly a crock, but we got
         *writers-for-this-defclass* ;to have it to live nicely.
@@ -83,6 +85,9 @@
                                 (sb!c:source-location)
                                 ',(safe-code-p env)))))
         (if defstruct-p
+            #+sb-xc-host
+            (error "DEFCLASS does not accept DEFSTRUCT-P on the host.")
+            #-sb-xc-host
             (progn
               ;; FIXME: (YUK!) Why do we do this? Because in order
               ;; to make the defstruct form, we need to know what
@@ -244,6 +249,7 @@
                     nil
                     `('type-check-function (lambda (value)
                                              (declare (type ,type value)
+                                                      #-sb-xc-host  ;; FIXME: ensure this optimization can be xc'ed
                                                       (optimize (sb!c:store-coverage-data 0)))
                                              value))))
                (canon `(:name ',name :readers ',readers :writers ',writers
@@ -293,6 +299,7 @@
              (setq entry (list initform
                                (gensym)
                                `(function (lambda ()
+                                  #-sb-xc-host  ;; FIXME: ensure this optimization can be xc'ed
                                   (declare (optimize
                                             (sb!c:store-coverage-data 0)))
                                   ,initform))))

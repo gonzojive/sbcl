@@ -51,7 +51,7 @@
 (defun random-fixnum ()
   (random (1+ most-positive-fixnum)))
 
-(def!constant n-fixnum-bits (integer-length sb-xc:most-positive-fixnum))
+(def!constant n-fixnum-bits (integer-length sb!xc:most-positive-fixnum))
 
 ;;; Lambda which executes its body (or not) randomly. Used to drop
 ;;; random cache entries.
@@ -78,7 +78,7 @@
 ;;; structure class will be some other kind of SB!KERNEL:LAYOUT, but
 ;;; this shouldn't matter, since the only two slots that WRAPPER adds
 ;;; are meaningless in those cases.
-(defstruct (wrapper
+(def!struct (wrapper
             (:include layout
                       ;; KLUDGE: In CMU CL, the initialization default
                       ;; for LAYOUT-INVALID was NIL. In SBCL, that has
@@ -199,6 +199,7 @@
 ;;; In all cases, SET-FUN-NAME must return the new (or same)
 ;;; function. (Unlike other functions to set stuff, it does not return
 ;;; the new value.)
+#-sb-xc-host
 (defun set-fun-name (fun new-name)
   #!+sb-doc
   "Set the name of a compiled function object. Return the function."
@@ -283,6 +284,7 @@
   ;; Suppress a code-deletion note.  FIXME: doing the FIXME above,
   ;; integrating PCL more with the compiler, would remove the need for
   ;; this icky stuff.
+  #-sb-xc-host
   (declare (optimize (inhibit-warnings 3)))
   (when (pcl-instance-p instance)
     (get-slots instance)))

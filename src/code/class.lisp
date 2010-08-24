@@ -1488,6 +1488,7 @@
 
 ;;; This is to be called whenever we are altering a class.
 (defun %modify-classoid (classoid)
+  #-sb-xc-host  ;; FIXME DEBUG delete this line -- for total hackery debugging
   (clear-type-caches)
   (when (member (classoid-state classoid) '(:read-only :frozen))
     ;; FIXME: This should probably be CERROR.
