@@ -146,7 +146,104 @@ bootstrapping.
       (generic-function standard-method-combination t)
       standard-compute-effective-method))))
 
+
 (defmacro defgeneric (fun-name lambda-list &body options)
+  (declare (type list lambda-list))
+  (unless (legal-fun-name-p fun-name)
+    (error 'simple-program-error
+           :format-control "illegal generic function name ~S"
+           :format-arguments (list fun-name)))
+  (check-gf-lambda-list lambda-list)
+  (let ((initargs ())
+        (methods ()))
+    (flet ((duplicate-option (name)
+             (error 'simple-program-error
+                    :format-control "The option ~S appears more than once."
+                    :format-arguments (list name)))
+           (expand-method-definition (qab) ; QAB = qualifiers, arglist, body
+             (let* ((arglist-pos (position-if #'listp qab))
+                    (arglist (elt qab arglist-pos))
+                    (qualifiers (subseq qab 0 arglist-pos))
+                    (body (nthcdr (1+ arglist-pos) qab)))
+               `(push (defmethod ,fun-name ,@qualifiers ,arglist ,@body)
+                      (generic-function-initial-methods (fdefinition ',fun-name))))))
+      (macrolet ((initarg (key) `(getf initargs ,key)))
+        (dolist (option options)
+          (let ((car-option (car option)))
+            (case car-option
+              (declare
+                 (when (and
+                        (consp (cadr option))
+                        (member (first (cadr option))
+                                ;; FIXME: this list is slightly weird.
+                                ;; ANSI (on the DEFGENERIC page) in one
+                                ;; place allows only OPTIMIZE; in
+                                ;; another place gives this list of
+                                ;; disallowed declaration specifiers.
+                                ;; This seems to be the only place where
+                                ;; the FUNCTION declaration is
+                                ;; mentioned; TYPE seems to be missing.
+                                ;; Very strange.  -- CSR, 2002-10-21
+                                '(declaration ftype function
+                                  inline notinline special)))
+                   (error 'simple-program-error
+                          :format-control "The declaration specifier ~S ~
+                                         is not allowed inside DEFGENERIC."
+                          :format-arguments (list (cadr option))))
+                 (push (cadr option) (initarg :declarations)))
+              (:method-combination
+                 (when (initarg car-option)
+                   (duplicate-option car-option))
+                 (unless (symbolp (cadr option))
+                   (error 'simple-program-error
+                          :format-control "METHOD-COMBINATION name not a ~
+                                         symbol: ~S"
+                          :format-arguments (list (cadr option))))
+                 (setf (initarg car-option)
+                       `',(cdr option)))
+              (:argument-precedence-order
+                 (let* ((required (parse-lambda-list lambda-list))
+                        (supplied (cdr option)))
+                   (unless (= (length required) (length supplied))
+                     (error 'simple-program-error
+                            :format-control "argument count discrepancy in ~
+                                           :ARGUMENT-PRECEDENCE-ORDER clause."
+                            :format-arguments nil))
+                   (when (set-difference required supplied)
+                     (error 'simple-program-error
+                            :format-control "unequal sets for ~
+                                           :ARGUMENT-PRECEDENCE-ORDER clause: ~
+                                           ~S and ~S"
+                            :format-arguments (list required supplied)))
+                   (setf (initarg car-option)
+                         `',(cdr option))))
+              ((:documentation :generic-function-class :method-class)
+                 (unless (proper-list-of-length-p option 2)
+                   (error "bad list length for ~S" option))
+                 (if (initarg car-option)
+                     (duplicate-option car-option)
+                     (setf (initarg car-option) `',(cadr option))))
+              (:method
+                 (push (cdr option) methods))
+              (t
+                 ;; ANSI requires that unsupported things must get a
+                 ;; PROGRAM-ERROR.
+                 (error 'simple-program-error
+                        :format-control "unsupported option ~S"
+                        :format-arguments (list option))))))
+
+        (when (initarg :declarations)
+          (setf (initarg :declarations)
+                `',(initarg :declarations))))
+      `(progn
+         (eval-when (:compile-toplevel :load-toplevel :execute)
+           (compile-or-load-defgeneric ',fun-name))
+         (load-defgeneric ',fun-name ',lambda-list
+                          (sb-c:source-location) ,@initargs)
+         ,@(mapcar #'expand-method-definition methods)
+         (fdefinition ',fun-name)))))
+               
+(defmacro defgeneric-expander (fun-name lambda-list &body options)
   (declare (type list lambda-list))
   (unless (legal-fun-name-p fun-name)
     (error 'simple-program-error

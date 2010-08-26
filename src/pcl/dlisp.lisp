@@ -21,7 +21,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 
 ;;;; some support stuff for getting a hold of symbols that we need when
@@ -72,7 +72,7 @@
     (values lambda-list
             required
             (when applyp
-              '((sb-c::%listify-rest-args
+              '((sb!c::%listify-rest-args
                  .more-context.
                  (the (and unsigned-byte fixnum)
                    .more-count.))))
@@ -92,7 +92,7 @@
        ;; the type of the EMF.
        :rest-arg ,(if applyp
                       ;; Creates a list from the &MORE arguments.
-                      '((sb-c::%listify-rest-args
+                      '((sb!c::%listify-rest-args
                          .dfun-more-context.
                          (the (and unsigned-byte fixnum)
                            .dfun-more-count.)))
@@ -299,7 +299,7 @@
 (defun emit-miss (miss-fn args applyp)
   (if applyp
       `(multiple-value-call ,miss-fn ,@args
-                            (sb-c::%more-arg-values .more-context.
+                            (sb!c::%more-arg-values .more-context.
                                                     0
                                                     .more-count.))
       `(funcall ,miss-fn ,@args)))

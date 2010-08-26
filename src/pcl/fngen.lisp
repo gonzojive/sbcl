@@ -21,7 +21,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 ;;; GET-FUN is the main user interface to this code. It is like
 ;;; COMPILE, only more efficient. It achieves this efficiency by
@@ -77,7 +77,7 @@
       (list (constant-form-value form))
       nil))
 
-(defstruct (fgen (:constructor make-fgen (gensyms generator generator-lambda system)))
+(def!struct (fgen (:constructor make-fgen (gensyms generator generator-lambda system)))
   gensyms
   generator
   generator-lambda

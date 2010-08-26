@@ -28,7 +28,7 @@
 ;;;; released by Xerox Corporation", as at that time the whole cache
 ;;;; implementation was essentially redone from scratch.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 ;;;; Public API:
 ;;;;
@@ -63,10 +63,10 @@
 ;;;;
 ;;;; Subsequences of the cache vector are called cache lines.
 ;;;;
-;;;; The cache vector uses the symbol SB-PCL::..EMPTY.. as a sentinel
+;;;; The cache vector uses the symbol SB!PCL::..EMPTY.. as a sentinel
 ;;;; value, to allow storing NILs in the vector as well.
 
-(defstruct (cache (:constructor %make-cache)
+(def!struct (cache (:constructor %make-cache)
                   (:copier %copy-cache))
   ;; Number of keys the cache uses.
   (key-count 1 :type (integer 1 (#.call-arguments-limit)))
@@ -154,7 +154,7 @@
 ;;; Compute the starting index of the next cache line in the cache vector.
 (declaim (inline next-cache-index))
 (defun next-cache-index (mask index line-size)
-  (declare (type (unsigned-byte #.sb-vm:n-word-bits) index line-size mask))
+  (declare (type (unsigned-byte #.sb!vm:n-word-bits) index line-size mask))
   (logand mask (+ index line-size)))
 
 ;;; Returns the hash-value for layout, or executes ELSE if the layout
@@ -235,7 +235,8 @@
         (line-size (cache-line-size cache))
         (mask (cache-mask cache)))
     (flet ((probe-line (base)
-             (declare (optimize (sb-c::type-check 0)))
+             #+sb-xc
+             (declare (optimize (sb!c::type-check 0)))
              (tagbody
                 (loop for offset of-type index from 0 below key-count
                       for layout in layouts do

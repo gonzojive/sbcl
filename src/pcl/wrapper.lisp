@@ -24,7 +24,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 (defmacro wrapper-class (wrapper)
   `(classoid-pcl-class (layout-classoid ,wrapper)))
@@ -59,7 +59,7 @@
 ;;; In SBCL, as in CMU CL, the layouts (a.k.a wrappers) for built-in
 ;;; and structure classes already exist when PCL is initialized, so we
 ;;; don't necessarily always make a wrapper. Also, we help maintain
-;;; the mapping between CL:CLASS and SB-KERNEL:CLASSOID objects.
+;;; the mapping between CL:CLASS and SB!KERNEL:CLASSOID objects.
 (defun make-wrapper (length class)
   (cond
     ((or (typep class 'std-class)
