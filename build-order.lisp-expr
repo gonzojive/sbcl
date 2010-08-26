@@ -784,7 +784,7 @@
  ("src/pcl/wrapper"            )
  ("src/pcl/cache"              )
  ("src/pcl/dlisp"              )
- ("src/pcl/boot"               :not-host :warm)
+ ("src/pcl/boot"               )
  ("src/pcl/vector"             :not-host :warm)
  ("src/pcl/slots-boot"         :not-host :warm)
  ("src/pcl/combin"             :not-host :warm)
