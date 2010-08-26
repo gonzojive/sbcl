@@ -207,6 +207,18 @@
 
 ;;;; built-in classes
 
+
+
+(defvar *reversed-delayed-prototype-initforms* nil)
+
+(defun !pcl-late-cold-init-prototypes ()
+  (dolist (spec (nreverse *reversed-delayed-prototype-initforms*))
+    (destructuring-bind (metaclass-name class initform)
+          spec
+      (/show0 "Processing late prototype initform")
+      ;(/show0 (class-name class))
+      (!bootstrap-set-slot metaclass-name class 'prototype (eval initform)))))
+
 ;;; Grovel over SB!KERNEL::*BUILT-IN-CLASSES* in order to set
 ;;; SB!PCL:*BUILT-IN-CLASSES*.  The result is a list where each member
 ;;; of the list is of the form
@@ -259,7 +271,14 @@
                          (layout-inherits
                           (classoid-layout class))))
                   ,(if prototype-form
-                       (eval prototype-form)
+                       (if (or (and (consp prototype-form)
+                                    (eq :late (car prototype-form)))
+                               (setf prototype-form (cons :late prototype-form)))
+                           (progn
+                             (/show "Prototype form CAR: " (and (consp (second prototype-form))
+                                                                (car (second prototype-form))))
+                             `',prototype-form)
+                           (eval prototype-form))
                        ;; This is the default prototype value which
                        ;; was used, without explanation, by the CMU CL
                        ;; code we're derived from. Evidently it's safe

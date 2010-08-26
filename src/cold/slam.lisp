@@ -51,4 +51,4 @@
                         (concatenate 'string (stem-remap-target stem)
                                      ".trace")
                         srcname)))
-        (target-compile-stem stem flags)))))
+        (target-compile-stem stem flags))))))
