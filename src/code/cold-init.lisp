@@ -222,7 +222,7 @@
   ;; run the PROCLAIMs.
   (show-and-call !late-proclaim-cold-init)
 
-  (show-and-call sb!pcl::!pcl-late-cold-init-prototypes)
+  ;;(show-and-call sb!pcl::!pcl-late-cold-init-prototypes)
 
   (show-and-call os-cold-init-or-reinit)
   (show-and-call !pathname-cold-init)

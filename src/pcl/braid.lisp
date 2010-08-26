@@ -345,8 +345,10 @@
       (t
 (/show0 "Bootstrapping a class 5c")
        (if (and proto-p (consp proto) (eq :late (car proto)))
-           (push (list metaclass-name class 'prototype (second proto))
-                 *reversed-delayed-prototype-initforms*)
+           (set-slot 'prototype
+                     (eval (second proto)))
+;           (push (list metaclass-name class 'prototype (second proto))
+;                 *reversed-delayed-prototype-initforms*)
            (set-slot 'prototype
                      (if proto-p proto (allocate-standard-instance wrapper))))))
     class))

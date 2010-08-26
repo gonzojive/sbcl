@@ -63,12 +63,20 @@
 ;;;; MAKE-ARRAY
 (eval-when (:compile-toplevel :execute)
   (sb!xc:defmacro pick-vector-type (type &rest specs)
+    "Expands into a type-case-like form that evaluates the cdr of the
+first SPEC where TYPE is a subtype of the car of the spec."
     `(cond ,@(mapcar (lambda (spec)
                        `(,(if (eq (car spec) t)
                               t
                               `(subtypep ,type ',(car spec)))
                          ,@(cdr spec)))
-                     specs))))
+                     specs)))
+  (sb!xc:defmacro pick-vector-type-exact (type default-form &rest specs)
+    `(cond ,@(mapcar (lambda (spec)
+                       `((equal ,type ',(car spec))
+                         ,@(cdr spec)))
+              specs)
+           (t ,default-form))))
 
 ;;; These functions are used in the implementation of MAKE-ARRAY for
 ;;; complex arrays. There are lots of transforms to simplify
@@ -96,15 +104,29 @@
      (values #.sb!vm:simple-bit-vector-widetag 1))
     ;; OK, we have to wade into SUBTYPEPing after all.
     (t
-     (unless *type-system-initialized*
-       (bug "SUBTYPEP dispatch for MAKE-ARRAY before the type system is ready"))
-     #.`(pick-vector-type type
-         ,@(map 'list
-                (lambda (saetp)
-                  `(,(sb!vm:saetp-specifier saetp)
-                    (values ,(sb!vm:saetp-typecode saetp)
-                            ,(sb!vm:saetp-n-bits saetp))))
-                sb!vm:*specialized-array-element-type-properties*)))))
+     (if *type-system-initialized*
+         #.`(pick-vector-type type
+             ,@(map 'list
+                    (lambda (saetp)
+                      `(,(sb!vm:saetp-specifier saetp)
+                         (values ,(sb!vm:saetp-typecode saetp)
+                                 ,(sb!vm:saetp-n-bits saetp))))
+                    sb!vm:*specialized-array-element-type-properties*))
+         ;; KLUDGE: if the type system is not ready, try to match the type exactly.
+         #.`(pick-vector-type-exact type
+                (progn
+                  (macrolet ((p (thing)
+                               `(sb!sys:%primitive sb!int::print (the sb!int::simple-string ,thing))))
+                    (p (symbol-name (first type)))
+                    (dotimes (i (second type))
+                      (p ".")))
+                  (bug "SUBTYPEP dispatch required for MAKE-ARRAY before the type system is ready"))
+             ,@(map 'list
+                    (lambda (saetp)
+                      `(,(sb!vm:saetp-specifier saetp)
+                         (values ,(sb!vm:saetp-typecode saetp)
+                                 ,(sb!vm:saetp-n-bits saetp))))
+                    sb!vm:*specialized-array-element-type-properties*))))))
 
 (defun %complex-vector-widetag (type)
   (case type
