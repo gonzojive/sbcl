@@ -35,14 +35,23 @@
      (compiler-error "illegal function name: ~S" name)))
   (values))
 
-;;; Record a new function definition, and check its legality.
+ ;;; Record a new function definition, and check its legality.
 (defun proclaim-as-fun-name (name)
 
   ;; legal name?
   (check-fun-name name)
 
   ;; scrubbing old data I: possible collision with old definition
-  (when (fboundp name)
+
+  ;; If we are cross-compiling, don't check fboundp because there is
+  ;; no cross-compilation version and we don't want to use the host's.
+  ;; For one, the host may have a function fbound that is not fbound
+  ;; in the target, which the relevant environment for this function.
+  ;; For two, because NAME could be invalid on the host lisp, like in
+  ;; PCL where we use non-standard function names and fboundp raises
+  ;; an error if we check for them on the host.
+  (when (or #-sb-xc-host (fboundp name)
+            #+sb-xc-host (info :function :kind name))
     (ecase (info :function :kind name)
       (:function) ; happy case
       ((nil)) ; another happy case
