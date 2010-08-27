@@ -1,4 +1,4 @@
-;;;; This file contains the optimization machinery for make-instance.
+ ;;;; This file contains the optimization machinery for make-instance.
 
 ;;;; This software is part of the SBCL system. See the README file for
 ;;;; more information.
@@ -56,7 +56,7 @@
 ;;; for classes whose definitions are known at the time the function
 ;;; is called.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 ;;; ******************
 ;;; Utilities  *******
@@ -347,6 +347,7 @@
 
 (defvar *compiling-optimized-constructor* nil)
 
+#+sb-xc
 (define-compiler-macro make-instance (&whole form &rest args &environment env)
   (declare (ignore args))
   ;; Compiling an optimized constructor for a non-standard class means

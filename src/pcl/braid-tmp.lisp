@@ -256,6 +256,10 @@
         (set-slot 'options ()))
       (setq *standard-method-combination* smc))))
 
+(eval-when (:compile-toplevel)
+  (dolist (e *built-in-classes*)
+    (destructuring-bind (name supers subs cpl prototype) e
+
 ;;; Initialize a class metaobject.
 (defun !bootstrap-initialize-class
        (metaclass-name class name
@@ -596,9 +600,7 @@
           ((eq 'complete **boot-state**)
            (ensure-non-standard-class (classoid-name classoid) classoid)))))
 
-#+sb-xc
 (pushnew 'ensure-deffoo-class sb!kernel::*defstruct-hooks*)
-#+sb-xc
 (pushnew 'ensure-deffoo-class sb!kernel::*define-condition-hooks*)
 
 ;;; FIXME: only needed during bootstrap
@@ -638,7 +640,6 @@
   ;; Protected by *world-lock* in callers.
   (let ((classoid (layout-classoid layout))
         (olayout (class-wrapper class)))
-    (declare (ignore olayout))
     (unless (eq (classoid-layout classoid) layout)
       (setf (layout-inherits layout)
             (order-layout-inherits

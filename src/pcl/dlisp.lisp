@@ -176,6 +176,12 @@
 ;;; --------------------------------
 
 (defun generating-lisp (closure-variables args form)
+  #!+sb-doc
+  "Compiles the given form FORM to a lambda that takes
+CLOSURE-VARIABLES as arguments and returns a lambda that takes ARGS as
+arguments with a body of FORM.
+
+Compiles the lambda under circumstances "
   (let ((lambda `(lambda ,closure-variables
                    ,@(when (member 'miss-fn closure-variables)
                            `((declare (type function miss-fn))))
@@ -183,9 +189,19 @@
                        (let ()
                          (declare #.*optimize-speed*)
                          ,form)))))
-    (values (if *precompiling-lap*
-                `#',lambda
-                (compile nil lambda))
+    (values (cond
+              (*precompiling-lap*
+               `#',lambda)
+              #+sb-xc-host
+              (t
+               (bug "Attempted to cross-compile PCL code, but *precompile-lap* was not set."))
+               ;;(compile nil lambda))
+              #+sb-xc
+              ((eq **boot-state** 'complete)
+               (compile nil lambda))
+              #+sb-xc
+              (t
+               (bug "Attempted to compile PCL code on the target before boot complete.")))
             nil)))
 
 ;;; note on implementation for CMU 17 and later (including SBCL):
@@ -196,6 +212,11 @@
 ;;; FSC-INSTANCE-P returns true on funcallable structures as well as
 ;;; PCL fins.
 (defun emit-reader/writer (reader/writer 1-or-2-class class-slot-p)
+  #!+sb-doc
+  "Compiles a lambda to read/write/boundp (according to READER/WRITER)
+an instance or class slot (according to CLASS-SLOT-P)."
+  (declare (type (member :reader :writer :boundp) reader/writer)
+           (type (member 1 2) 1-or-2-class))
   (let ((instance nil)
         (arglist  ())
         (closure-variables ())

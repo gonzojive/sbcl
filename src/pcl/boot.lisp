@@ -2336,6 +2336,31 @@ bootstrapping.
 (defun early-make-a-method (class qualifiers arglist specializers initargs doc
                             &key slot-name object-class method-class-function
                             definition-source)
+  #!+sb-doc
+  "Makes a method early on in the bootstrapping process, and returns
+  information about that method.
+
+CLASS is the name of the class
+
+QUALIFIERS are the method qualifiers for the method
+
+SPECIALIZERS is a list of either class names (symbols) or class
+objects (anything that is not a symbol is assumed to be a class object).
+
+Returns RESULT, a list of the form
+
+  (:early-method
+   <the :function initarg value>
+   <the %method-function-fast-function or NIL>
+   <the parsed specializers (objects not symbols)>
+   REAL-MAKE-METHOD-ARGS)
+
+Where REAL-MAKE-METHOD-ARGS is a list to which REAL-MAKE-A-METHOD can
+be applied make a real method corresponding to this early one.
+
+Note that INITIALIZE-METHOD-FUNCTION is called with INITARGS and
+RESULT after RESULT is computed and before returning RESULT.
+"
   (let ((parsed ())
         (unparsed ()))
     ;; Figure out whether we got class objects or class names as the
