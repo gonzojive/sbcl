@@ -447,7 +447,7 @@
          (instance-structure-protocol-error slotd
                                             'slot-boundp-using-class))))))
 
-#+nil
+#+sb-xc
 (defun get-accessor-from-svuc-method-function (class slotd sdfun name)
   (macrolet ((emf-funcall (emf &rest args)
                `(invoke-effective-method-function ,emf nil
