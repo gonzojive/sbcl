@@ -21,7 +21,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 (let ((reader-specializers '(slot-object))
       (writer-specializers '(t slot-object)))
@@ -62,7 +62,7 @@
               ,fun)
             ,@args))
 
-(defmacro accessor-slot-value (object slot-name &environment env)
+(sb-xc:defmacro accessor-slot-value (object slot-name &environment env)
   (aver (constantp slot-name env))
   (let* ((slot-name (constant-form-value slot-name env))
          (reader-name (slot-reader-name slot-name)))
@@ -72,7 +72,7 @@
        (truly-the (values t &optional)
                   (quiet-funcall #',reader-name ,object)))))
 
-(defmacro accessor-set-slot-value (object slot-name new-value &environment env)
+(sb-xc:defmacro accessor-set-slot-value (object slot-name new-value &environment env)
   (aver (constantp slot-name env))
   (setq object (macroexpand object env))
   (let* ((slot-name (constant-form-value slot-name env))
@@ -94,7 +94,7 @@
         `(let ,bind-object ,form)
         form)))
 
-(defmacro accessor-slot-boundp (object slot-name &environment env)
+(sb-xc:defmacro accessor-slot-boundp (object slot-name &environment env)
   (aver (constantp slot-name env))
   (let* ((slot-name (constant-form-value slot-name env))
          (boundp-name (slot-boundp-name slot-name)))
@@ -201,6 +201,7 @@
               value))))
      (null
       (lambda (instance)
+        (declare (ignore instance))
         (instance-structure-protocol-error slotd 'slot-value-using-class))))
    `(reader ,slot-name)))
 
@@ -276,6 +277,7 @@
              (not (eq (cdr location) +slot-unbound+))))
      (null
       (lambda (instance)
+        (declare (ignore instance))
         (instance-structure-protocol-error slotd 'slot-boundp-using-class))))
    `(boundp ,slot-name)))
 
@@ -445,6 +447,7 @@
          (instance-structure-protocol-error slotd
                                             'slot-boundp-using-class))))))
 
+#+nil
 (defun get-accessor-from-svuc-method-function (class slotd sdfun name)
   (macrolet ((emf-funcall (emf &rest args)
                `(invoke-effective-method-function ,emf nil
@@ -459,6 +462,9 @@
                  (emf-funcall sdfun class instance slotd))))
      `(,name ,(class-name class) ,(slot-definition-name slotd)))))
 
+
+;;; These forms don't compile on the host because PCL-WALKER is not portable
+#+sb-xc
 (defun make-std-reader-method-function (class-or-name slot-name)
   (declare (ignore class-or-name))
   (let* ((initargs (copy-tree
@@ -473,6 +479,7 @@
           (list (list nil slot-name)))
     initargs))
 
+#+sb-xc
 (defun make-std-writer-method-function (class-or-name slot-name)
   (let* ((class (when (eq **boot-state** 'complete)
                   (if (typep class-or-name 'class)
@@ -509,6 +516,7 @@
           (list nil (list nil slot-name)))
     initargs))
 
+#+sb-xc
 (defun make-std-boundp-method-function (class-or-name slot-name)
   (declare (ignore class-or-name))
   (let* ((initargs (copy-tree
@@ -575,7 +583,8 @@
   (let* ((vector (layout-slot-table wrapper))
          (index (rem (sxhash slot-name) (length vector))))
     (declare (simple-vector vector) (index index)
-             (optimize (sb-c::insert-array-bounds-checks 0)))
+             #+sb-xc
+             (optimize (sb!c::insert-array-bounds-checks 0)))
     (do ((plist (the list (svref vector index)) (cdr plist)))
         ((not (consp plist)))
       (let ((key (car plist)))
@@ -597,7 +606,8 @@
             (and (eq 'complete **boot-state**) (safe-p class)))))
     (flet ((add-to-vector (name slot)
              (declare (symbol name)
-                      (optimize (sb-c::insert-array-bounds-checks 0)))
+                      #+sb-xc
+                      (optimize (sb!c::insert-array-bounds-checks 0)))
              (let ((index (rem (sxhash name) n)))
                (setf (svref vector index)
                      (list* name (list* (when save-slot-location-p

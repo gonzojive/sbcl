@@ -446,7 +446,7 @@ bootstrapping.
              (every (lambda (s)
                       (if (consp s)
                           (and (eq (car s) 'eql)
-                               (constantp (cadr s))
+                               (sb!xc:constantp (cadr s))
                                (let ((sv (constant-form-value (cadr s))))
                                  (or (interned-symbol-p sv)
                                      (integerp sv)
@@ -683,7 +683,7 @@ bootstrapping.
                    (block ,(fun-name-block-name generic-function-name)
                      ,@real-body)))
                (constant-value-p (and (null (cdr real-body))
-                                      (constantp (car real-body))))
+                                      (sb!xc:constantp (car real-body))))
                (constant-value (and constant-value-p
                                     (constant-form-value (car real-body))))
                (plist (and constant-value-p
@@ -1196,7 +1196,7 @@ bootstrapping.
 ;;; involve the slot-accessor clause (where EMF is a FIXNUM) at all.
 (macrolet ((def (name &optional narrow)
              `(defmacro ,name (emf restp &key required-args rest-arg more-arg)
-                (unless (constantp restp)
+                (unless (sb-xc:constantp restp)
                   (error "The RESTP argument is not constant."))
                 (setq restp (constant-form-value restp))
                 (with-unique-names (emf-n)
@@ -1543,7 +1543,7 @@ bootstrapping.
                                (t nil))))
                    ((and (memq (car form)
                                '(slot-value set-slot-value slot-boundp))
-                         (constantp (caddr form) env))
+                         (sb!xc:constantp (caddr form) env))
                     (let ((fun (ecase (car form)
                                  (slot-value #'optimize-slot-value)
                                  (set-slot-value #'optimize-set-slot-value)
