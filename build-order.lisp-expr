@@ -788,7 +788,7 @@
  ("src/pcl/vector"             )
  ("src/pcl/slots-boot"         )
  ("src/pcl/combin"             )
- ("src/pcl/dfun"               :not-host :warm)
+ ("src/pcl/dfun"               )
  ("src/pcl/ctor"               :not-host :warm)
  ("src/pcl/braid"              :not-host :warm)
  ("src/pcl/dlisp3"             :not-host :warm)

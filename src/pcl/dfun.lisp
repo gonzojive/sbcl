@@ -21,7 +21,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 #|
 
@@ -260,23 +260,23 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
 ;;;     more than one slot index. A cache vector stores the wrappers
 ;;;     and corresponding slot indexes.
 
-(defstruct (dfun-info (:constructor nil)
+(def!struct (dfun-info (:constructor nil)
                       (:copier nil))
   (cache nil))
 
-(defstruct (no-methods (:constructor no-methods-dfun-info ())
+(def!struct (no-methods (:constructor no-methods-dfun-info ())
                        (:include dfun-info)
                        (:copier nil)))
 
-(defstruct (initial (:constructor initial-dfun-info ())
+(def!struct (initial (:constructor initial-dfun-info ())
                     (:include dfun-info)
                     (:copier nil)))
 
-(defstruct (dispatch (:constructor dispatch-dfun-info ())
+(def!struct (dispatch (:constructor dispatch-dfun-info ())
                      (:include dfun-info)
                      (:copier nil)))
 
-(defstruct (default-method-only (:constructor default-method-only-dfun-info ())
+(def!struct (default-method-only (:constructor default-method-only-dfun-info ())
                                 (:include dfun-info)
                                 (:copier nil)))
 
@@ -288,7 +288,7 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
 
 ;accessor:
 ;  one-class two-class one-index n-n
-(defstruct (accessor-dfun-info (:constructor nil)
+(def!struct (accessor-dfun-info (:constructor nil)
                                (:include dfun-info)
                                (:copier nil))
   accessor-type) ; (member reader writer)
@@ -296,7 +296,7 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
 (defmacro dfun-info-accessor-type (di)
   `(accessor-dfun-info-accessor-type ,di))
 
-(defstruct (one-index-dfun-info (:constructor nil)
+(def!struct (one-index-dfun-info (:constructor nil)
                                 (:include accessor-dfun-info)
                                 (:copier nil))
   index)
@@ -304,11 +304,11 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
 (defmacro dfun-info-index (di)
   `(one-index-dfun-info-index ,di))
 
-(defstruct (n-n (:constructor n-n-dfun-info (accessor-type cache))
+(def!struct (n-n (:constructor n-n-dfun-info (accessor-type cache))
                 (:include accessor-dfun-info)
                 (:copier nil)))
 
-(defstruct (one-class (:constructor one-class-dfun-info
+(def!struct (one-class (:constructor one-class-dfun-info
                                     (accessor-type index wrapper0))
                       (:include one-index-dfun-info)
                       (:copier nil))
@@ -317,7 +317,7 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
 (defmacro dfun-info-wrapper0 (di)
   `(one-class-wrapper0 ,di))
 
-(defstruct (two-class (:constructor two-class-dfun-info
+(def!struct (two-class (:constructor two-class-dfun-info
                                     (accessor-type index wrapper0 wrapper1))
                       (:include one-class)
                       (:copier nil))
@@ -326,12 +326,12 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
 (defmacro dfun-info-wrapper1 (di)
   `(two-class-wrapper1 ,di))
 
-(defstruct (one-index (:constructor one-index-dfun-info
+(def!struct (one-index (:constructor one-index-dfun-info
                                     (accessor-type index cache))
                       (:include one-index-dfun-info)
                       (:copier nil)))
 
-(defstruct (checking (:constructor checking-dfun-info (function cache))
+(def!struct (checking (:constructor checking-dfun-info (function cache))
                      (:include dfun-info)
                      (:copier nil))
   function)
@@ -339,11 +339,11 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
 (defmacro dfun-info-function (di)
   `(checking-function ,di))
 
-(defstruct (caching (:constructor caching-dfun-info (cache))
+(def!struct (caching (:constructor caching-dfun-info (cache))
                     (:include dfun-info)
                     (:copier nil)))
 
-(defstruct (constant-value (:constructor constant-value-dfun-info (cache))
+(def!struct (constant-value (:constructor constant-value-dfun-info (cache))
                            (:include dfun-info)
                            (:copier nil)))
 
@@ -361,7 +361,7 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
      (lambda (new arg)
        (accessor-miss gf new arg dfun-info)))))
 
-#-sb-fluid (declaim (sb-ext:freeze-type dfun-info))
+#!-sb-fluid (declaim (sb!ext:freeze-type dfun-info))
 
 (defun make-one-class-accessor-dfun (gf type wrapper index)
   (let ((emit (ecase type
@@ -653,6 +653,7 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
 
 (declaim (inline make-callable))
 (defun make-callable (gf methods generator method-alist wrappers)
+  (declare (ignore gf))
   (let* ((*applicable-methods* methods)
          (callable (function-funcall generator method-alist wrappers)))
     callable))
@@ -1241,7 +1242,7 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
                        (unless (or early-p (slot-accessor-std-p slotd type))
                          (return-from make-accessor-table nil))
                        (push (cons specl slotd) (gethash class table))))
-                   (dolist (subclass (sb-pcl::class-direct-subclasses class))
+                   (dolist (subclass (sb!pcl::class-direct-subclasses class))
                      (unless (class-finalized-p subclass)
                        (return-from make-accessor-table nil))
                      (aux subclass))))
@@ -1712,7 +1713,7 @@ Except see also BREAK-VICIOUS-METACIRCLE.  -- CSR, 2003-05-28
             ;; where we can end up in a metacircular loop here? In
             ;; case there are, better fetch it while interrupts are
             ;; still enabled...
-            (sb-thread::call-with-recursive-system-spinlock #'update lock))))))
+            (sb!thread::call-with-recursive-system-spinlock #'update lock))))))
 
 (defvar *dfun-count* nil)
 (defvar *dfun-list* nil)
