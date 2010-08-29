@@ -1628,7 +1628,7 @@
 ;;;; STANDARD-INSTANCE, and GENERIC-FUNCTION into mutated structures
 ;;;; instead of just implementing them as primitive objects. (This
 ;;;; reduced-functionality macro seems pretty close to the
-;;;; functionality of DEFINE-PRIMITIVE-OBJECT..)
+;;;; functionality of DEFINE-PRIMITIVE-OBJECT ..)
 
 (defun make-dd-with-alternate-metaclass (&key (class-name (missing-arg))
                                               (superclass-name (missing-arg))
@@ -1679,6 +1679,17 @@
 ;;; FIXME: we should share the parsing and the DD construction between
 ;;; this and the cross-compiler version, but my brain was too small to
 ;;; get that right.  -- CSR, 2006-09-14
+
+
+;;; 8/28/2010: Do you also happen to know what
+;;; !defstruct-with-alternate-metaclass is all about?
+
+;;; (12:39:50 PM) Krystof: well, it allows you to have structure-like
+;;; things that aren't of type
+;;; structure-class/structure-object. Krystof: so, for example,
+;;; conditions and funcallable-instances have slots but aren't of type
+;;; structure-object (and their layout in memory is significantly
+;;; different)
 #+sb-xc-host
 (defmacro !defstruct-with-alternate-metaclass
     (class-name &key

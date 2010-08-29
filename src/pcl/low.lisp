@@ -51,7 +51,7 @@
 (defun random-fixnum ()
   (random (1+ most-positive-fixnum)))
 
-(def!constant n-fixnum-bits (integer-length sb!xc:most-positive-fixnum))
+(def!constant n-fixnum-bits (integer-length sb-xc:most-positive-fixnum))
 
 ;;; Lambda which executes its body (or not) randomly. Used to drop
 ;;; random cache entries.
@@ -117,32 +117,69 @@
   ;; (!) as of sbcl-0.pre7.63, so for now it's academic.)
   :runtime-type-checks-p nil)
 
-(import 'sb!kernel:funcallable-instance-p)
+#+sb-xc-host
+(defstruct (xc-standard-funcallable-instance
+             (:constructor %make-standard-funcallable-instance (clos-slots name hash-code)))
+  clos-slots
+  name
+  hash-code
+
+  fun
+  layout
+  )
+
+
+(defun pcl-funcallable-instance-p (x)
+  ;; On the host we should only be interested in whether things that
+  ;; are being cross-compiled are funcallable instances
+  #+sb-xc-host
+  (or (xc-standard-funcallable-instance-p x)
+      (%method-function-p x))
+  #+sb-xc
+  (sb!kernel:funcallable-instance-p x))
 
 (defun set-funcallable-instance-function (fin new-value)
   (declare (type function new-value))
-  (aver (funcallable-instance-p fin))
-  (setf (funcallable-instance-fun fin) new-value))
+  (aver (pcl-funcallable-instance-p fin))
+  (setf #+sb-xc      (funcallable-instance-fun fin)
+        #+sb-xc-host (xc-standard-funcallable-instance-fun fin)
+        new-value))
 
 ;;; FIXME: these macros should just go away.  It's not clear whether
 ;;; the inline functions defined by
 ;;; !DEFSTRUCT-WITH-ALTERNATE-METACLASS are as efficient as they could
 ;;; be; ordinary defstruct accessors are defined as source transforms.
 (defun fsc-instance-p (fin)
-  (funcallable-instance-p fin))
+  (pcl-funcallable-instance-p fin))
+
+#+sb-xc
 (define-compiler-macro fsc-instance-p (fin)
-  `(funcallable-instance-p ,fin))
+  `(pcl-funcallable-instance-p ,fin))
+
 (defmacro fsc-instance-wrapper (fin)
+  #+sb-xc-host
+  `(xc-standard-funcallable-instance-layout ,fin)
+  #+sb-xc
   `(%funcallable-instance-layout ,fin))
+
 (defmacro fsc-instance-slots (fin)
+  #+sb-xc-host
+  `(xc-standard-funcallable-instance-clos-slots ,fin)
+  #+sb-xc
   `(%funcallable-instance-info ,fin 1))
+
 (defmacro fsc-instance-hash (fin)
+  #+sb-xc-host
+  `(xc-standard-funcallable-instance-hash-code ,fin)
+  #+sb-xc
   `(%funcallable-instance-info ,fin 3))
 
+#+sb-xc
 (declaim (inline clos-slots-ref (setf clos-slots-ref)))
 (declaim (ftype (function (simple-vector index) t) clos-slots-ref))
 (defun clos-slots-ref (slots index)
   (svref slots index))
+
 (declaim (ftype (function (t simple-vector index) t) (setf clos-slots-ref)))
 (defun (setf clos-slots-ref) (new-value slots index)
   (setf (svref slots index) new-value))
@@ -153,8 +190,14 @@
 ;;; few uses of (OR STD-INSTANCE-P FSC-INSTANCE-P) are changed to
 ;;; PCL-INSTANCE-P.
 (defun std-instance-p (x)
+  #+sb-xc-host
+  (xc-standard-instance-p x)
+  #+sb-xc
   (%instancep x))
+
+#+sb-xc
 (define-compiler-macro std-instance-p (x)
+  #+sb-xc
   `(%instancep ,x))
 
 ;; a temporary definition used for debugging the bootstrap
@@ -199,7 +242,7 @@
 ;;; In all cases, SET-FUN-NAME must return the new (or same)
 ;;; function. (Unlike other functions to set stuff, it does not return
 ;;; the new value.)
-#-sb-xc-host
+#+sb-xc
 (defun set-fun-name (fun new-name)
   #!+sb-doc
   "Set the name of a compiled function object. Return the function."
@@ -223,6 +266,36 @@
   (when (and (consp new-name)
              (member (car new-name) '(slow-method fast-method slot-accessor)))
     (setf (fdefinition new-name) fun))
+  fun)
+
+;;; FIXME -- ensure this is not needed on the target
+(defun set-fun-name (fun new-name)
+  #!+sb-doc
+  "Set the name of a compiled function object. Return the function."
+  (when (valid-function-name-p fun)
+    (setq fun (fdefinition fun)))
+  (typecase fun
+    (%method-function
+       (setf (%method-function-name fun) new-name)
+       (aver (%method-function-fast-function fun)))
+
+    #+sb-xc-host
+    (xc-standard-funcallable-instance
+       (setf (xc-standard-funcallable-instance-name fun) new-name)
+       (aver (xc-standard-funcallable-instance-fun fun)))
+
+    (function
+       (warn "SET-FUN-NAME called, but no precautions to ensure function will be defined on target.")
+       (warn "SET-FUN-NAME called, but no fdefiniton set for host.")
+       )
+    (t (error "Instance ~S is not a supported funcallable-instance type by the host" fun)))
+
+  ;; Fixup name-to-function mappings in cases where the function
+  ;; hasn't been defined by DEFUN.  (FIXME: is this right?  This logic
+  ;; comes from CMUCL).  -- CSR, 2004-12-31
+  ;(when (and (consp new-name)
+  ;(member (car new-name) '(slow-method fast-method slot-accessor)))
+  ;(setf (fdefinition new-name) fun))
   fun)
 
 ;;; FIXME: probably no longer needed after init
@@ -261,13 +334,36 @@
   :dd-type structure
   :runtime-type-checks-p nil)
 
+#+sb-xc-host
+(defstruct (xc-standard-instance
+             (:constructor %make-standard-instance (slots hash-code)))
+  slots
+  hash-code
+  layout
+)
+
+
+
+
+
 ;;; Both of these operations "work" on structures, which allows the above
 ;;; weakening of STD-INSTANCE-P.
-(defmacro std-instance-slots (x) `(%instance-ref ,x 1))
-(defmacro std-instance-wrapper (x) `(%instance-layout ,x))
+(defmacro std-instance-slots (x)
+  #+sb-xc-host
+  `(xc-standard-instance-slots ,x)
+  #+sb-xc
+  `(%instance-ref ,x 1))
+
+(defmacro std-instance-wrapper (x)
+  #+sb-xc-host
+  `(xc-standard-instance-layout ,x)
+  #+sb-xc
+  `(%instance-layout ,x))
+
 ;;; KLUDGE: This one doesn't "work" on structures.  However, we
 ;;; ensure, in SXHASH and friends, never to call it on structures.
-(defmacro std-instance-hash (x) `(%instance-ref ,x 2))
+(defmacro std-instance-hash (x)
+  `(%instance-ref ,x 2))
 
 ;;; FIXME: These functions are called every place we do a
 ;;; CALL-NEXT-METHOD, and probably other places too. It's likely worth
@@ -280,6 +376,7 @@
   (if (std-instance-p instance)
       (std-instance-slots instance)
       (fsc-instance-slots instance)))
+
 (defun get-slots-or-nil (instance)
   ;; Suppress a code-deletion note.  FIXME: doing the FIXME above,
   ;; integrating PCL more with the compiler, would remove the need for
@@ -398,4 +495,13 @@
   :metaclass-name static-classoid
   :metaclass-constructor make-static-classoid
   :dd-type funcallable-structure)
+
+#+sb-xc-host
+(defstruct (%method-function
+             (:constructor %make-method-function (fast-function name)))
+  fast-function
+  name
+
+  host-method-fun)
+
 

@@ -446,7 +446,7 @@ bootstrapping.
              (every (lambda (s)
                       (if (consp s)
                           (and (eq (car s) 'eql)
-                               (sb!xc:constantp (cadr s))
+                               (sb-xc:constantp (cadr s))
                                (let ((sv (constant-form-value (cadr s))))
                                  (or (interned-symbol-p sv)
                                      (integerp sv)
@@ -683,7 +683,7 @@ bootstrapping.
                    (block ,(fun-name-block-name generic-function-name)
                      ,@real-body)))
                (constant-value-p (and (null (cdr real-body))
-                                      (sb!xc:constantp (car real-body))))
+                                      (sb-xc:constantp (car real-body))))
                (constant-value (and constant-value-p
                                     (constant-form-value (car real-body))))
                (plist (and constant-value-p
@@ -1543,7 +1543,7 @@ bootstrapping.
                                (t nil))))
                    ((and (memq (car form)
                                '(slot-value set-slot-value slot-boundp))
-                         (sb!xc:constantp (caddr form) env))
+                         (sb-xc:constantp (caddr form) env))
                     (let ((fun (ecase (car form)
                                  (slot-value #'optimize-slot-value)
                                  (set-slot-value #'optimize-set-slot-value)
@@ -1570,7 +1570,7 @@ bootstrapping.
        (fboundp name)
        (if (eq **boot-state** 'complete)
            (standard-generic-function-p (gdefinition name))
-           (funcallable-instance-p (gdefinition name)))))
+           (pcl-funcallable-instance-p (gdefinition name)))))
 
 (defun method-plist-value (method key &optional default)
   (let ((plist (if (consp method)
@@ -1739,6 +1739,26 @@ bootstrapping.
 
 (defvar *!early-generic-functions* ())
 
+(defparameter *!xc-generic-functions* nil)
+
+#+sb-xc-host
+(defun xc-ensure-generic-function (fun-name
+                                   &rest all-keys
+                                   &key environment source-location
+                                   &allow-other-keys)
+  (declare (ignore environment source-location))
+  (declare (optimize (debug 3)))
+  (let ((existing (cdr (assoc fun-name *!xc-generic-functions* :test #'equal))))
+    (cond ((and existing
+                (eq **boot-state** 'complete)
+                (null (generic-function-p existing)))
+           (generic-clobbers-function fun-name)
+           (fmakunbound fun-name)
+           (apply 'xc-ensure-generic-function fun-name all-keys))
+          (t
+           (apply #'ensure-generic-function-using-class
+                  existing fun-name all-keys)))))
+
 #+sb-xc
 (defun ensure-generic-function (fun-name
                                 &rest all-keys
@@ -1848,6 +1868,8 @@ bootstrapping.
 
 (defun set-arg-info (gf &key new-method (lambda-list nil lambda-list-p)
                         argument-precedence-order)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
   (let* ((arg-info (if (eq **boot-state** 'complete)
                        (gf-arg-info gf)
                        (early-gf-arg-info gf)))
@@ -1979,6 +2001,9 @@ bootstrapping.
       (method-qualifiers method)))
 
 (defun set-arg-info1 (gf arg-info new-method methods was-valid-p first-p)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
+
   (let* ((existing-p (and methods (cdr methods) new-method))
          (nreq (length (arg-info-metatypes arg-info)))
          (metatypes (if existing-p
@@ -2084,6 +2109,7 @@ bootstrapping.
          (when lambda-list-p
            (set-arg-info existing :lambda-list lambda-list))
          existing)
+
         ((assoc spec *!generic-function-fixups* :test #'equal)
          (if existing
              (make-early-gf spec lambda-list lambda-list-p existing
@@ -2435,7 +2461,10 @@ RESULT after RESULT is computed and before returning RESULT.
   (values (cadr early-method) (caddr early-method)))
 
 (defun early-method-class (early-method)
-  (find-class (car (fifth early-method))))
+  #+sb-xc-host (!bootstrap-find-class (car (fifth early-method)))
+  #+sb-xc      (find-class (car (fifth early-method))))
+
+  
 
 (defun early-method-standard-accessor-p (early-method)
   (let ((class (first (fifth early-method))))
@@ -2461,12 +2490,16 @@ RESULT after RESULT is computed and before returning RESULT.
 ;;;  corresponds to the fact that we are only allowed to have one
 ;;;  method on any generic function up until the time classes exist.
 (defun early-method-specializers (early-method &optional objectsp)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
   (if (and (listp early-method)
            (eq (car early-method) :early-method))
       (cond ((eq objectsp t)
              (or (fourth early-method)
                  (setf (fourth early-method)
-                       (mapcar #'find-class (cadddr (fifth early-method))))))
+                       (mapcar #+sb-xc #'find-class
+                               #+sb-xc-host #'!bootstrap-find-class
+                               (cadddr (fifth early-method))))))
             (t
              (fourth (fifth early-method))))
       (error "~S is not an early-method." early-method)))

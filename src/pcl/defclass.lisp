@@ -472,6 +472,8 @@
   `(clos-slots-ref (get-slots ,object)
                    (!bootstrap-slot-index ,type ,slot-name)))
 (defun !bootstrap-set-slot (type object slot-name new-value)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
   (setf (!bootstrap-get-slot type object slot-name) new-value))
 
 (defun early-class-name (class)

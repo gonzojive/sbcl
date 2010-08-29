@@ -171,7 +171,7 @@
 ;;; Check whether the binding of the named variable is modified in the
 ;;; method body.
 (defun parameter-modified-p (parameter-name env)
-  (let ((modified-variables (sb!xc:macroexpand '%parameter-binding-modified env)))
+  (let ((modified-variables (macroexpand '%parameter-binding-modified env)))
     (memq parameter-name modified-variables)))
 
 (defun optimize-slot-value (form slots required-parameters env)
@@ -537,12 +537,12 @@
 ;;; overridden.
 (define-symbol-macro pv-env-environment overridden)
 
-(sb!xc:defmacro pv-env (&environment env
+(sb-xc:defmacro pv-env (&environment env
                   (pv-table-form pv-parameters)
                   &rest forms)
   ;; Decide which expansion to use based on the state of the PV-ENV-ENVIRONMENT
   ;; symbol-macrolet.
-  (if (eq (sb!xc:macroexpand 'pv-env-environment env) 'default)
+  (if (eq (sb-xc:macroexpand 'pv-env-environment env) 'default)
       `(locally (declare (simple-vector .pv.))
          ,@forms)
       `(let* ((.pv-table. ,pv-table-form)

@@ -38,10 +38,18 @@
            has already been partially loaded. This may not work, you may~%~
            need to get a fresh lisp (reboot) and then load PCL."))
 
-#!-sb-fluid (declaim (inline gdefinition))
+
+#+sb-xc-host
+(defparameter *!xc-gdefinitions* nil)
+
+;#!-sb-fluid (declaim (inline gdefinition))
+#+sb-xc (declaim (inline gdefinition))
 (defun gdefinition (spec)
   ;; This is null layer right now, but once FDEFINITION stops bypasssing
   ;; fwrappers/encapsulations we can do that here.
+  #+sb-xc-host
+  (cdr (assoc spec *!xc-gdefinitions* :key 'equal))
+  #+sb-xc
   (fdefinition spec))
 
 (defun (setf gdefinition) (new-value spec)
@@ -49,6 +57,13 @@
   ;; FDEFINITION) stops bypasssing fwrappers/encapsulations we can do
   ;; that here.
   (sb!c::note-name-defined spec :function) ; FIXME: do we need this? Why?
+  #+sb-xc-host
+  (locally
+      (declare (type xc-standard-funcallable-instance new-value))
+    (setf  *!xc-gdefinitions*
+           (cons (cons spec new-value)
+                 (remove spec *!xc-gdefinitions* :key #'car :test #'equal))))
+  #+sb-xc
   (setf (fdefinition spec) new-value))
 
 ;;;; type specifier hackery
@@ -237,8 +252,9 @@
 ;;;  names-of-classes-of-inherited-layouts
 ;;;  prototype object)
 (/show "about to set up SB!PCL::*BUILT-IN-CLASSES*")
-#+sb-xc  ;; for now we don't need this.  wrry about it when we have to BRAID
-(defvar *built-in-classes*
+;;#+sb-xc
+(defparameter *built-in-classes*
+;(defvar *built-in-classes*
   (locally
       (declare (optimize (debug 3)))
     ;;
@@ -281,10 +297,9 @@
                           (classoid-layout class))))
                   ,(if prototype-form
                        (if (and (consp prototype-form)
-                                (eq :late (car prototype-form)))
-                           (progn
-                             `',prototype-form)
-                           (eval prototype-form))
+                                (eq :cross (car prototype-form)))
+                           (eval prototype-form)
+                           `(:late ,prototype-form))
                        ;; This is the default prototype value which
                        ;; was used, without explanation, by the CMU CL
                        ;; code we're derived from. Evidently it's safe

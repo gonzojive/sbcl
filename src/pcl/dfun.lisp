@@ -222,7 +222,7 @@ metatypes argument) is processed such that each element is either T or
 (defun standard-slot-value (object slot-name class)
   (let ((location (gethash (cons class slot-name) *standard-slot-locations*)))
     (if location
-        (let ((value (if (funcallable-instance-p object)
+        (let ((value (if (pcl-funcallable-instance-p object)
                          (funcallable-standard-instance-access object location)
                          (standard-instance-access object location))))
           (when (eq +slot-unbound+ value)
@@ -753,6 +753,8 @@ the generic function GF and wrapper WRAPPER."
 (defvar *early-p* nil)
 
 (defun make-initial-dfun (gf)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
   (let ((initial-dfun #'(lambda (&rest args) (initial-dfun gf args))))
     (multiple-value-bind (dfun cache info)
         (if (eq **boot-state** 'complete)
@@ -770,6 +772,8 @@ the generic function GF and wrapper WRAPPER."
       (set-dfun gf dfun cache info))))
 
 (defun make-early-accessor (gf type)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
   (let* ((methods (early-gf-methods gf))
          (slot-name (early-method-standard-accessor-slot-name (car methods))))
     (ecase type
@@ -810,6 +814,8 @@ the generic function GF and wrapper WRAPPER."
 (defvar *new-class* nil)
 
 (defun final-accessor-dfun-type (gf)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
   (let ((methods (if (early-gf-p gf)
                      (early-gf-methods gf)
                      (generic-function-methods gf))))
@@ -1693,6 +1699,8 @@ the generic function GF and wrapper WRAPPER."
            (return t)))))
 
 (defun update-dfun (generic-function &optional dfun cache info)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
   (let ((early-p (early-gf-p generic-function)))
     (flet ((update ()
              ;; Save DFUN-STATE, so that COMPUTE-DISCRIMINATING-FUNCTION can

@@ -171,6 +171,9 @@
 
 (defun make-optimized-std-reader-method-function
     (fsc-p slotd slot-name location)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
+  #+sb-xc
   (declare #.*optimize-speed*)
   (set-fun-name
    (etypecase location
@@ -464,10 +467,27 @@
 
 
 ;;; These forms don't compile on the host because PCL-WALKER is not portable
-#+sb-xc
+;#+sb-xc
 (defun make-std-reader-method-function (class-or-name slot-name)
   (declare (ignore class-or-name))
   (let* ((initargs (copy-tree
+                    ;;; FIXME: this read-conditional is a total hack
+                    ;;; because MAKE-METHOD-FUNCTION does not work on
+                    ;;; the host because it uses PCL's walker, which
+                    ;;; only works with an SBCL lexenv
+                    #+sb-xc-host
+                    (list :function
+                          (let* ((fmf (lambda (.pv. .next-method-call. instance)
+                                        (declare (ignore .pv. .next-method-call. instance))
+                                        (bug "This should never be called.")))
+                                 (mf (%make-method-function fmf nil)))
+                            (setf (%method-function-host-method-fun
+                                   mf)
+                                  (lambda (args next-methods)
+                                    (funcall fmf (first args))))
+                            mf)
+                          :arg-info '(1))
+                    #+sb-xc
                     (make-method-function
                      (lambda (instance)
                        (pv-binding1 ((bug "Please report this")
@@ -479,7 +499,7 @@
           (list (list nil slot-name)))
     initargs))
 
-#+sb-xc
+;#+sb-xc
 (defun make-std-writer-method-function (class-or-name slot-name)
   (let* ((class (when (eq **boot-state** 'complete)
                   (if (typep class-or-name 'class)
@@ -496,6 +516,19 @@
                         (when type-check-function
                           (funcall type-check-function new-value)))))
          (initargs (copy-tree
+                    #+sb-xc-host
+                    (list :function
+                          (let* ((fmf (lambda (.pv. .next-method-call. new-value instance)
+                                        (declare (ignore .pv. .next-method-call. instance new-value))
+                                        (bug "This should never be called.")))
+                                 (mf (%make-method-function fmf nil)))
+                            (setf (%method-function-host-method-fun
+                                   mf)
+                                  (lambda (args next-methods)
+                                    (funcall fmf (first args))))
+                            mf)
+                          :arg-info '(2))
+                    #+sb-xc
                     (if safe-p
                         (make-method-function
                          (lambda (nv instance)
@@ -593,6 +626,8 @@
           (return (car plist)))))))
 
 (defun make-slot-table (class slots &optional bootstrap)
+  #+sb-xc-host
+  (declare (optimize (debug 3)))
   (let* ((n (+ (length slots) 2))
          (vector (make-array n :initial-element nil))
          (save-slot-location-p
