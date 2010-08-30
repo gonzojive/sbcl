@@ -617,7 +617,15 @@
         method-lambda)))
 
 (defun make-method-initargs-form-internal (method-lambda initargs env)
+   #!+sb-doc
+  "Given a method-lambda form METHOD-LAMBDA and a an initial plist of
+initargs INITARGS, returns a form that evaluates in the original
+defmethod environment ENV to a list of initargs for initializing a
+method object."
   (declare (ignore env))
+  ;;; FIXME: this is ugly.  why are we picking through the body of the
+  ;;; method-lambda for a SIMPLE-LEXICAL-METHOD-FUNCTIONS form?  Can't
+  ;;; we achieve this some other way?
   (let (method-lambda-args
         lmf ; becomes body of function
         lmf-params)
@@ -647,26 +655,6 @@
           (setf (getf (getf initargs 'plist) :arg-info) (cons nreq restp))
           (make-method-initargs-form-internal1
            initargs (cddr lmf) args lmf-params restp)))))
-
-(defun lambda-list-parameter-names (lambda-list)
-  ;; Given a valid lambda list, extract the parameter names.
-  (loop for x in lambda-list
-        with res = nil
-        do (unless (member x lambda-list-keywords :test #'eq)
-             (if (consp x)
-                 (let ((name (car x)))
-                   (if (consp name)
-                       ;; ... ((:BAR FOO) 1)
-                       (push (second name) res)
-                       ;; ... (FOO 1)
-                       (push name res))
-                   ;; ... (... 1 FOO-P)
-                   (let ((name-p (cddr x)))
-                     (when name-p
-                       (push (car name-p) res))))
-                 ;; ... FOO
-                 (push x res)))
-        finally (return res)))
 
 (defun make-method-initargs-form-internal1
     (initargs body req-args lmf-params restp)

@@ -216,6 +216,31 @@
       (errorp (error "No generic function named ~S." name))
       (t nil))))
 
+(defun method-prototype-for-gf (name)
+  #!+sb-doc
+  "Take a name which is either a generic function name or a list
+ specifying a SETF generic function (like: (SETF
+ <generic-function-name>)). Return the prototype instance of the
+ method-class for that generic function.
+
+If there is no generic function by that name, this returns the default
+value, the prototype instance of the class STANDARD-METHOD. This
+default value is also returned if the spec names an ordinary function
+or even a macro. In effect, this leaves the signalling of the
+appropriate error until load time.
+
+Note: During bootstrapping, this function is allowed to return NIL."
+  (let ((gf? (and (fboundp name)
+                  (gdefinition name))))
+    (cond ((neq **boot-state** 'complete) nil)
+          ((or (null gf?)
+               (not (generic-function-p gf?)))          ; Someone else MIGHT
+                                                        ; error at load time.
+           (class-prototype (find-class 'standard-method)))
+          (t
+            (class-prototype (or (generic-function-method-class gf?)
+                                 (find-class 'standard-method)))))))
+
 (defun real-add-named-method (generic-function-name qualifiers
                               specializers lambda-list &rest other-initargs)
   (unless (and (fboundp generic-function-name)

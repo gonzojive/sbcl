@@ -54,6 +54,20 @@ of declarations forms DECLARATIONS."
       (when (and (consp form) (eq (car form) name))
         (return-from get-declaration (cdr form))))))
 
+(defun declared-specials (declarations)
+  #!+sb-doc
+  "Returns a list of all the things declared special in the list of
+declarations."
+  (loop for (declare . specifiers) in declarations
+        append (loop for specifier in specifiers
+                     when (eq 'special (car specifier))
+                     append (cdr specifier))))
+
+(defun interned-symbol-p (x)
+  #!+sb-doc
+  "Returns non-null if X is a symbol and is interned in a package."
+  (and (symbolp x) (symbol-package x)))
+
 (/show "pcl/macros.lisp 85")
 
 (defmacro doplist ((key val) plist &body body)

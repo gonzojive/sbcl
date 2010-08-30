@@ -424,6 +424,13 @@
       (setf (slot-value instance slot-name) v))))
 
 (defun slot-unbound-internal (instance position)
+  #!+sb-doc
+  "Calls the generic function SLOT-UNBOUND appropriately for INSTANCE
+and the slot designated by POSITION.  Position is either a fixnum, in
+which case it is an index into the slots vector of the wrapper for the
+instance, or a con in which case the CAR is the name of the slot.
+
+Note that slot-unbound is called with arguments (class instance slot-name)."
   (values
    (slot-unbound
     (class-of instance)
