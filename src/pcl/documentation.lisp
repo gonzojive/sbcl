@@ -144,7 +144,7 @@
 
 (defmethod documentation ((x symbol) (doc-type (eql 'type)))
   (or (fdocumentation x 'type)
-      (let ((class (find-class x nil)))
+      (let ((class (sb-xc:find-class x nil)))
         (when class
           (slot-value class '%documentation)))))
 
@@ -184,7 +184,7 @@
 (defmethod (setf documentation) (new-value (x symbol) (doc-type (eql 'type)))
   (if (or (structure-type-p x) (condition-type-p x))
       (setf (fdocumentation x 'type) new-value)
-      (let ((class (find-class x nil)))
+      (let ((class (sb-xc:find-class x nil)))
         (if class
             (setf (slot-value class '%documentation) new-value)
             (setf (fdocumentation x 'type) new-value)))))

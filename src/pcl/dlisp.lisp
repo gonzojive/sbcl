@@ -181,7 +181,8 @@
 CLOSURE-VARIABLES as arguments and returns a lambda that takes ARGS as
 arguments with a body of FORM.
 
-Compiles the lambda under circumstances "
+When *precompilng-lap* is non-null, returns a quoted lambda-function;
+otherwise a call is made to COMPILE."
   (let ((lambda `(lambda ,closure-variables
                    ,@(when (member 'miss-fn closure-variables)
                            `((declare (type function miss-fn))))

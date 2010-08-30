@@ -32,20 +32,20 @@
 (in-package "SB!PCL")
 
 ;;; cross-compiler versions of find-class used during bootstrapping
-#+sb-xc-host
-(defparameter *!bootstrap-class-objects* ()) ;; alist of (name xc-standard-instance)classes defined with-find-class
+;; #+sb-xc-host
+;; (defparameter *!bootstrap-class-objects* ()) ;; alist of (name xc-standard-instance)classes defined with-find-class
 
-#+sb-xc-host
-(defun !bootstrap-find-class  (symbol &optional (errorp t))
-  (or (cdr (find symbol *!bootstrap-class-objects* :key #'car :test #'equal))
-      (and errorp (error "Found no class named ~S" symbol))))
+;; (defun !bootstrap-find-class  (symbol &optional (errorp t))
+;;   (sb-xc:find-class symbol error
+;;   (or (cdr (find symbol *!bootstrap-class-objects* :key #'car :test #'equal))
+;;       (and errorp (error "Found no class named ~S" symbol))))
 
-#+sb-xc-host
-(defun (setf !bootstrap-find-class) (new-value name)
-  (declare (optimize (debug 3)))
-  (setf *!bootstrap-class-objects*
-        (cons (cons name new-value)
-              (remove name *!bootstrap-class-objects* :key #'car :test #'equal))))
+;; #+sb-xc-host
+;; (defun (setf !bootstrap-find-class) (new-value name)
+;;   (declare (optimize (debug 3)))
+;;   (setf *!bootstrap-class-objects*
+;;         (cons (cons name new-value)
+;;               (remove name *!bootstrap-class-objects* :key #'car :test #'equal))))
 
 
 
@@ -145,7 +145,7 @@ forms that setf the wrapper, class, and (find-class class)."
                                        'funcallable-standard-class-wrapper
                                        'standard-class-wrapper))
                           (wrapper-class ,wr) ,class
-                          (!bootstrap-find-class ',class) ,class)))
+                          (sb-xc:find-class ',class) ,class)))
                classes)))
 
 (defun !bootstrap-meta-braid ()
@@ -191,9 +191,9 @@ forms that setf the wrapper, class, and (find-class class)."
                         (built-in-class built-in-class-wrapper)
                         (structure-class structure-class-wrapper)
                         (condition-class condition-class-wrapper)))
-             (class (or (!bootstrap-find-class name nil)
+             (class (or (sb-xc:find-class name nil)
                         (allocate-standard-instance wrapper))))
-        (setf (!bootstrap-find-class name) class)))
+        (setf (sb-xc:find-class name) class)))
     ;; 3.  Initialize the real class metaobjects just allocated for
     ;; each of the early classes.
     (dolist (definition *early-class-definitions*)
@@ -209,7 +209,7 @@ forms that setf the wrapper, class, and (find-class class)."
           ;; the early class, and set up its wrapper
           (multiple-value-bind (slots cpl default-initargs direct-subclasses)
               (early-collect-inheritance name)
-            (let* ((class (!bootstrap-find-class name))
+            (let* ((class (sb-xc:find-class name))
                    (wrapper (cond ((eq class slot-class)
                                    slot-class-wrapper)
                                   ((eq class standard-class)
@@ -300,7 +300,7 @@ forms that setf the wrapper, class, and (find-class class)."
                   *standard-method-class-names*))
 
     ;; 5.  Perform extra steps to set up standard method combination class
-    (let* ((smc-class (!bootstrap-find-class 'standard-method-combination))
+    (let* ((smc-class (sb-xc:find-class 'standard-method-combination))
            (smc-wrapper (!bootstrap-get-slot 'standard-class
                                              smc-class
                                              'wrapper))
@@ -331,7 +331,7 @@ PROTO is the prototype object of the class, if one has been
 instatiated already.
 
 DIRECT-SUPERS, DIRECT-SUBCLASSES, and CPL may be lists of class names,
-not the class objects themselves, in which case !bootstrap-find-class
+not the class objects themselves, in which case find-class
 should be used to find the actual class objects
 
 DIRECT-SLOTS and SLOTS are real slot definition objects instantiated
@@ -340,14 +340,14 @@ with !BOOTSTRAP-MAKE-SLOT-DEFINITIONS"
   #+sb-xc-host
   (declare (optimize (debug 3)))
 
-  (flet ((classes (names) (mapcar #'!bootstrap-find-class names))
+  (flet ((classes (names) (mapcar #'sb-xc:find-class names))
          (set-slot (slot-name value)
            (!bootstrap-set-slot metaclass-name class slot-name value)))
     (set-slot 'name name)
     (set-slot 'finalized-p t)
     (set-slot 'source source)
     (set-slot 'safe-p nil)
-    (set-slot '%type (if (eq class (!bootstrap-find-class t))
+    (set-slot '%type (if (eq class (sb-xc:find-class t))
                          t
                          ;; FIXME: Could this just be CLASS instead
                          ;; of `(CLASS ,CLASS)? If not, why not?
@@ -390,7 +390,7 @@ with !BOOTSTRAP-MAKE-SLOT-DEFINITIONS"
     ;; matter here for the slot DIRECT-SUBCLASSES, since every class
     ;; inherits the slot from class CLASS.
     (dolist (super direct-supers)
-      (let* ((super (!bootstrap-find-class super))
+      (let* ((super (sb-xc:find-class super))
              (subclasses (!bootstrap-get-slot metaclass-name super
                                               'direct-subclasses)))
         (cond ((eq +slot-unbound+ subclasses)
@@ -574,7 +574,7 @@ CLASS-NAME.  Type is one of the symbols READER WRITER BOUNDP."
                         doc
                         :slot-name slot-name
                         :object-class class-name
-                        :method-class-function (constantly (!bootstrap-find-class accessor-class))
+                        :method-class-function (constantly (sb-xc:find-class accessor-class))
                         :definition-source source-location))))))
 
 (defun !bootstrap-accessor-definitions1 (class-name
@@ -615,7 +615,7 @@ generic functions for which accessors are to be defined."
     (dolist (ecp *early-class-predicates*)
       (let ((class-name (car ecp))
             (predicate-name (cadr ecp)))
-        (!bootstrap-make-class-predicate (!bootstrap-find-class class-name) predicate-name)))))
+        (!bootstrap-make-class-predicate (sb-xc:find-class class-name) predicate-name)))))
 
 ;;; as a reminder, built-in-classes are things like FIXNUM and the
 ;;; like, not things like STANDARD-CLASS
@@ -637,17 +637,17 @@ generic functions for which accessors are to be defined."
 
   ;; In the first pass, we create a skeletal object to be bound to the
   ;; class name.
-  (let* ((the-class-built-in-class (!bootstrap-find-class 'built-in-class))
+  (let* ((the-class-built-in-class (sb-xc!find-class 'built-in-class))
          (the-class-built-in-class-wrapper (class-wrapper the-class-built-in-class)))
     (dolist (e *built-in-classes*)
       (let ((class (allocate-standard-instance the-class-built-in-class-wrapper)))
-        (setf (!bootstrap-find-class (car e)) class))))
+        (setf (sb-xc!find-class (car e)) class))))
 
   ;; In the second pass, we initialize the class objects.
-  (let ((class-eq-wrapper (class-wrapper (!bootstrap-find-class 'class-eq-specializer))))
+  (let ((class-eq-wrapper (class-wrapper (sb-xc!find-class 'class-eq-specializer))))
     (dolist (e *built-in-classes*)
       (destructuring-bind (name supers subs cpl prototype) e
-        (let* ((class (!bootstrap-find-class name))
+        (let* ((class (sb-xc!find-class name))
                (lclass (find-classoid name))
                (wrapper (classoid-layout lclass)))
           (set (get-built-in-class-symbol name) class)

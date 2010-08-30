@@ -138,11 +138,11 @@ Returns (values NIL NIL) until boot state is complete."
                       (gdefinition name))))
         (if (or (null gf?)
                 (not (generic-function-p gf?)))
-            (values (class-prototype (find-class 'standard-generic-function))
-                    (class-prototype (find-class 'standard-method)))
+            (values (class-prototype (sb-xc:find-class 'standard-generic-function))
+                    (class-prototype (sb-xc:find-class 'standard-method)))
             (values gf?
                     (class-prototype (or (generic-function-method-class gf?)
-                                         (find-class 'standard-method))))))))
+                                         (sb-xc:find-class 'standard-method))))))))
 
 ;;; KLUDGE: Called once for the compile-time expansion and at least
 ;;; once for the LOAD-TIME EXECUTE situations.  See the KLUDGE note
@@ -610,10 +610,10 @@ specializer objects in the lexical environment of the defmethod form."
              ((and (eq **boot-state** 'complete)
                    (specializerp name))
               name)
-             ((symbolp name) `(find-class ',name))
+             ((symbolp name) `(sb-xc:find-class ',name))
              ((consp name) (ecase (car name)
                              ((eql) `(intern-eql-specializer ,(cadr name)))
-                             ((class-eq) `(class-eq-specializer (find-class ',(cadr name))))))
+                             ((class-eq) `(class-eq-specializer (sb-xc:find-class ',(cadr name))))))
              (t
               ;; FIXME: Document CLASS-EQ specializers.
               (error 'simple-reference-error
@@ -662,7 +662,7 @@ functions with class the same as generic-function."
             (if (and (consp type) (eq (car type) 'class))
                 (let* ((class (cadr type))
                        (class-name (class-name class)))
-                  (if (eq class (find-class class-name nil))
+                  (if (eq class (sb-xc:find-class class-name nil))
                       class-name
                       type))
                 type))
@@ -722,7 +722,7 @@ functions with class the same as generic-function."
                  ;; SB!KERNEL:INSTANCE. In an effort to sweep such
                  ;; problems under the rug, we exclude these problem
                  ;; cases by blacklisting them here. -- WHN 2001-01-19
-                 (list 'slot-object #+nil (find-class 'slot-object)))
+                 (list 'slot-object #+nil (sb-xc:find-class 'slot-object)))
          '(ignorable))
         ((not (eq **boot-state** 'complete))
          ;; KLUDGE: PCL, in its wisdom, sometimes calls methods with
@@ -747,20 +747,20 @@ functions with class the same as generic-function."
          ;; the class instance is ok, since info will just return NIL, NIL.
          ;;
          ;; We still need to deal with the class case too, but at
-         ;; least #.(find-class 'integer) and integer as equivalent
+         ;; least #.(sb-xc:find-class 'integer) and integer as equivalent
          ;; specializers with this.
          (let* ((specializer-nameoid
                  (if (and (typep specializer 'class)
                           (let ((name (class-name specializer)))
                             (and name (symbolp name)
-                                 (eq specializer (find-class name nil)))))
+                                 (eq specializer (sb-xc:find-class name nil)))))
                      (class-name specializer)
                      specializer))
                 (kind (info :type :kind specializer-nameoid)))
 
            (flet ((specializer-nameoid-class ()
                     (typecase specializer-nameoid
-                      (symbol (find-class specializer-nameoid nil))
+                      (symbol (sb-xc:find-class specializer-nameoid nil))
                       (class specializer-nameoid)
                       (class-eq-specializer
                        (specializer-class specializer-nameoid))
@@ -773,7 +773,7 @@ functions with class the same as generic-function."
                   ;; erroneously tried to use a defined type as a
                   ;; specializer; it can be a non-BUILT-IN-CLASS if
                   ;; the user defines a type and calls (SETF
-                  ;; FIND-CLASS) in a consistent way.
+                  ;; SB-XC:FIND-CLASS) in a consistent way.
                  (when (and class (typep class 'built-in-class))
                    `(type ,specializer-nameoid ,parameter))))
               ((:instance nil)
@@ -1480,7 +1480,7 @@ function designated by GF-SPEC, and returns the method."
                        :definition-source source-location
                        initargs)))
     (unless (or (eq method-class 'standard-method)
-                (eq (find-class method-class nil) (class-of method)))
+                (eq (sb-xc:find-class method-class nil) (class-of method)))
       (warn 'simple-style-warning
             :format-control
             "~&At the time the method with qualifiers ~:S and~%~
@@ -1823,7 +1823,7 @@ objects (anything that is not a symbol is assumed to be a class object).
 Returns an method object made by instantiating CLASS."
   (if method-class-function
       (let* ((object-class (if (classp object-class) object-class
-                               (find-class object-class)))
+                               (sb-xc:find-class object-class)))
              (slots (class-direct-slots object-class))
              (slot-definition (find slot-name slots
                                     :key #'slot-definition-name)))
@@ -1864,8 +1864,7 @@ EARLY-METHOD."
 
 (defun early-method-class (early-method)
   (aver (early-method-p early-method))
-  #+sb-xc-host (!bootstrap-find-class (car (early-method-real-make-a-method-args early-method)))
-  #+sb-xc      (find-class (car (early-method-real-make-a-method-args early-method))))
+  (sb-xc:find-class (car (early-method-real-make-a-method-args early-method))))
 
 (defun early-method-standard-accessor-p (early-method)
   (aver (early-method-p early-method))
@@ -1903,8 +1902,7 @@ EARLY-METHOD."
       (cond ((eq objectsp t)
              (or (fourth early-method)
                  (setf (fourth early-method)
-                       (mapcar #+sb-xc #'find-class
-                               #+sb-xc-host #'!bootstrap-find-class
+                       (mapcar #'sb-xc:find-class
                                (cadddr (early-method-real-make-a-method-args early-method))))))
             (t
              (fourth (early-method-real-make-a-method-args early-method))))

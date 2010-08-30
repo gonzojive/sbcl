@@ -546,7 +546,7 @@ names.")
 (defmacro real-ensure-gf-internal (gf-class all-keys env)
   `(progn
      (cond ((symbolp ,gf-class)
-            (setq ,gf-class (find-class ,gf-class t ,env)))
+            (setq ,gf-class (sb-xc:find-class ,gf-class t ,env)))
            ((classp ,gf-class))
            (t
             (error "The :GENERIC-FUNCTION-CLASS argument (~S) was neither a~%~
@@ -571,7 +571,7 @@ names.")
         (setf (getf ,all-keys :method-class)
               (cond ((classp method-class)
                      method-class)
-                    (t (find-class method-class t ,env))))))))
+                    (t (sb-xc:find-class method-class t ,env))))))))
 
 (defun note-gf-signature (fun-name lambda-list-p lambda-list)
   (unless lambda-list-p

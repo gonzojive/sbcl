@@ -44,11 +44,18 @@
           ;; information around, I'm not sure. -- WHN 2000-12-30
           %variable-rebinding))
 
+(def!constant n-fixnum-bits (integer-length sb-xc:most-positive-fixnum))
+
 ;;; This DEFVAR was originally in defs.lisp, now moved here.
 ;;;
 ;;; Possible values are NIL, EARLY, BRAID, or COMPLETE.
 (declaim (type (member nil early braid complete) **boot-state**))
 (defglobal **boot-state** nil)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *optimize-speed*
+    '(optimize (speed 3) (safety 0))))
+
 
 (/show "done with DECLAIM DECLARATION")
 
@@ -77,6 +84,30 @@ IMPROPER-LIST-HANDLER"
                  ,@body)
                (,improper-list-handler)))))
 
+(defmacro dotimes-fixnum ((var count &optional (result nil)) &body body)
+  `(dotimes (,var (the fixnum ,count) ,result)
+     (declare (fixnum ,var))
+     ,@body))
+
+(declaim (inline random-fixnum))
+(defun random-fixnum ()
+  (random (1+ most-positive-fixnum)))
+
+;;; Lambda which executes its body (or not) randomly. Used to drop
+;;; random cache entries.
+(defmacro randomly-punting-lambda (lambda-list &body body)
+  (with-unique-names (drops drop-pos)
+    `(let ((,drops (random-fixnum))
+           (,drop-pos ,n-fixnum-bits))
+       (declare (fixnum ,drops)
+                (type (integer 0 ,n-fixnum-bits) ,drop-pos))
+       (lambda ,lambda-list
+         (when (logbitp (the unsigned-byte (decf ,drop-pos)) ,drops)
+           (locally ,@body))
+         (when (zerop ,drop-pos)
+           (setf ,drops (random-fixnum)
+                 ,drop-pos ,n-fixnum-bits))))))
+
 (defmacro function-funcall (form &rest args)
   `(funcall (the function ,form) ,@args))
 
@@ -87,75 +118,26 @@ IMPROPER-LIST-HANDLER"
 ;;;; FIND-CLASS
 ;;;;
 ;;;; This is documented in the CLOS specification.
-
-(/show "pcl/macros.lisp 119")
-
-(declaim (inline legal-class-name-p))
-(defun legal-class-name-p (x)
-  (symbolp x))
-
-(defun get-setf-fun-name (name)
-  `(setf ,name))
-
-(defvar *create-classes-from-internal-structure-definitions-p* t)
-
-(defun find-class-from-cell (symbol cell &optional (errorp t))
-  (or (when cell
-        (or (classoid-cell-pcl-class cell)
-            (when *create-classes-from-internal-structure-definitions-p*
-              (let ((classoid (classoid-cell-classoid cell)))
-                (when (and classoid
-                           (or (condition-classoid-p classoid)
-                               (defstruct-classoid-p classoid)))
-                  (ensure-non-standard-class symbol classoid))))))
-      (cond ((null errorp) nil)
-            ((legal-class-name-p symbol)
-             (error "There is no class named ~S." symbol))
-            (t
-             (error "~S is not a legal class name." symbol)))))
-
 ;;; FIXME: Only compile CL-conflicting stuff to target for now.  We
 ;;; might want to find a way to shadow find-class on the host so we
 ;;; can use our versions of find-class etc in code that uses SB!PCL
 ;;; (SB-PCL wouldn't shadow CL's symbols, but define them).  There's
 ;;; probably a way to do this already, but RED doesn't know about it.
-#+sb-xc
-(defun find-class (symbol &optional (errorp t) environment)
+(defun sb-xc:find-class (symbol &optional (errorp t) environment)
+
   (declare (ignore environment))
+  #+sb-xc-host
+  (error "Unimplemented so far")
+  #+sb-xc
   (find-class-from-cell symbol
                         (find-classoid-cell symbol)
                         errorp))
 
-(/show "pcl/macros.lisp 187")
-
-;;; FIXME: defining compiler macros for CL forms has unspecified
-;;; behavior (could be an error
-#+sb-xc
-(define-compiler-macro find-class (&whole form
-                                          symbol &optional (errorp t) environment)
-  (declare (ignore environment))
-  (if (and (constantp symbol)
-           (legal-class-name-p (setf symbol (constant-form-value symbol)))
-           (constantp errorp)
-           (boundp '**boot-state**)
-           (member **boot-state** '(braid complete)))
-      (let ((errorp (not (null (constant-form-value errorp))))
-            (cell (make-symbol "CLASSOID-CELL")))
-        `(let ((,cell (load-time-value (find-classoid-cell ',symbol :create t))))
-           (or (classoid-cell-pcl-class ,cell)
-               ,(if errorp
-                    `(find-class-from-cell ',symbol ,cell t)
-                    `(when (classoid-cell-classoid ,cell)
-                       (find-class-from-cell ',symbol ,cell nil))))))
-      form))
-
-(declaim (inline class-classoid))
-(defun class-classoid (class)
-  (layout-classoid (class-wrapper class)))
-
-#+sb-xc
-(defun (setf find-class) (new-value name &optional errorp environment)
+(defun (setf sb-xc:find-class) (new-value name &optional errorp environment)
   (declare (ignore errorp environment))
+  #+sb-xc-host
+  (error "Unimplemented so far")
+  #+sb-xc
   (cond ((legal-class-name-p name)
          (with-single-package-locked-error
              (:symbol name "Using ~A as the class-name argument in ~
@@ -177,10 +159,68 @@ IMPROPER-LIST-HANDLER"
         (t
          (error "~S is not a legal class name." name))))
 
+(/show "pcl/macros.lisp 119")
+
+(declaim (inline legal-class-name-p))
+(defun legal-class-name-p (x)
+  (symbolp x))
+
+(defun get-setf-fun-name (name)
+  `(setf ,name))
+
+(declaim (inline class-classoid))
+(defun class-classoid (class)
+  (layout-classoid (class-wrapper class)))
+
+(defvar *create-classes-from-internal-structure-definitions-p* t)
+
+(defun find-class-from-cell (symbol cell &optional (errorp t))
+  (or (when cell
+        (or (classoid-cell-pcl-class cell)
+            (when *create-classes-from-internal-structure-definitions-p*
+              (let ((classoid (classoid-cell-classoid cell)))
+                (when (and classoid
+                           (or (condition-classoid-p classoid)
+                               (defstruct-classoid-p classoid)))
+                  (ensure-non-standard-class symbol classoid))))))
+      (cond ((null errorp) nil)
+            ((legal-class-name-p symbol)
+             (error "There is no class named ~S." symbol))
+            (t
+             (error "~S is not a legal class name." symbol)))))
+
+
+
+(/show "pcl/macros.lisp 187")
+
+;;; FIXME: defining compiler macros for CL forms has unspecified
+;;; behavior (could be an error
+#+sb-xc
+(define-compiler-macro sb-xc:find-class (&whole form
+                                          symbol &optional (errorp t) environment)
+  (declare (ignore environment))
+  (if (and (constantp symbol)
+           (legal-class-name-p (setf symbol (constant-form-value symbol)))
+           (constantp errorp)
+           (boundp '**boot-state**)
+           (member **boot-state** '(braid complete)))
+      (let ((errorp (not (null (constant-form-value errorp))))
+            (cell (make-symbol "CLASSOID-CELL")))
+        `(let ((,cell (load-time-value (find-classoid-cell ',symbol :create t))))
+           (or (classoid-cell-pcl-class ,cell)
+               ,(if errorp
+                    `(find-class-from-cell ',symbol ,cell t)
+                    `(when (classoid-cell-classoid ,cell)
+                       (find-class-from-cell ',symbol ,cell nil))))))
+      form))
+
 
 
 
 #+sb-xc
 (defsetf slot-value set-slot-value)
+
+#+sb-xc-host
+(defsetf slot-value-xs set-slot-value)
 
 (/show "finished with pcl/macros.lisp")

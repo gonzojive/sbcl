@@ -362,7 +362,7 @@
 (defun ensure-class (name &rest args)
   (with-world-lock ()
     (apply #'ensure-class-using-class
-           (let ((class (find-class name nil)))
+           (let ((class (sb-xc:find-class name nil)))
              (when (and class (eq name (class-name class)))
                ;; NAME is the proper name of CLASS, so redefine it
                class))
@@ -375,8 +375,8 @@
         (frob-ensure-class-args args)
       (setf class (apply #'make-instance meta :name name initargs))
       (without-package-locks
-        (setf (find-class name) class))))
-  ;; After boot (SETF FIND-CLASS) does this.
+        (setf (sb-xc:find-class name) class))))
+  ;; After boot (SETF SB-XC:FIND-CLASS) does this.
   (unless (eq **boot-state** 'complete)
     (%set-class-type-translation class name))
   class)
@@ -389,8 +389,8 @@
         (apply #'change-class class meta initargs))
       (apply #'reinitialize-instance class initargs)
       (without-package-locks
-        (setf (find-class name) class))))
-  ;; After boot (SETF FIND-CLASS) does this.
+        (setf (sb-xc:find-class name) class))))
+  ;; After boot (SETF SB-XC:FIND-CLASS) does this.
   (unless (eq **boot-state** 'complete)
     (%set-class-type-translation class name))
   class)
@@ -401,7 +401,7 @@
              (cond
                ((classp s) s)
                ((legal-class-name-p s)
-                (or (find-class s nil)
+                (or (sb-xc:find-class s nil)
                     (ensure-class s :metaclass 'forward-referenced-class)))
                (t (error "Not a class or a legal class name: ~S." s)))))
       (doplist (key val) args
@@ -415,7 +415,7 @@
       (values (cond (metaclassp
                      (if (classp metaclass)
                          metaclass
-                         (find-class metaclass)))
+                         (sb-xc:find-class metaclass)))
                     (t *the-class-standard-class*))
               (nreverse reversed-plist)))))
 
@@ -597,12 +597,12 @@
 (defmethod direct-slot-definition-class ((class condition-class)
                                          &rest initargs)
   (declare (ignore initargs))
-  (find-class 'condition-direct-slot-definition))
+  (sb-xc:find-class 'condition-direct-slot-definition))
 
 (defmethod effective-slot-definition-class ((class condition-class)
                                             &rest initargs)
   (declare (ignore initargs))
-  (find-class 'condition-effective-slot-definition))
+  (sb-xc:find-class 'condition-effective-slot-definition))
 
 (defmethod finalize-inheritance ((class condition-class))
   (aver (slot-value class 'finalized-p))
@@ -783,7 +783,7 @@
 
 (defmethod direct-slot-definition-class ((class structure-class) &rest initargs)
   (declare (ignore initargs))
-  (find-class 'structure-direct-slot-definition))
+  (sb-xc:find-class 'structure-direct-slot-definition))
 
 (defmethod finalize-inheritance ((class structure-class))
   nil) ; always finalized
@@ -873,15 +873,15 @@
              (cpl-protocol-violation-class c)
              (eq (class-of (cpl-protocol-violation-class c))
                  *the-class-funcallable-standard-class*)
-             (find-class 'function)
+             (sb-xc:find-class 'function)
              (cpl-protocol-violation-cpl c)))))
 
 (defun %update-cpl (class cpl)
   (when (eq (class-of class) *the-class-standard-class*)
-    (when (find (find-class 'function) cpl)
+    (when (find (sb-xc:find-class 'function) cpl)
       (error 'cpl-protocol-violation :class class :cpl cpl)))
   (when (eq (class-of class) *the-class-funcallable-standard-class*)
-    (unless (find (find-class 'function) cpl)
+    (unless (find (sb-xc:find-class 'function) cpl)
       (error 'cpl-protocol-violation :class class :cpl cpl)))
   (if (class-finalized-p class)
       (unless (and (equal (class-precedence-list class) cpl)
@@ -1022,7 +1022,7 @@
 
 (defmethod direct-slot-definition-class ((class std-class) &rest initargs)
   (declare (ignore initargs))
-  (find-class 'standard-direct-slot-definition))
+  (sb-xc:find-class 'standard-direct-slot-definition))
 
 (defun make-direct-slotd (class initargs)
   (apply #'make-instance
@@ -1130,11 +1130,11 @@
 
 (defmethod effective-slot-definition-class ((class std-class) &rest initargs)
   (declare (ignore initargs))
-  (find-class 'standard-effective-slot-definition))
+  (sb-xc:find-class 'standard-effective-slot-definition))
 
 (defmethod effective-slot-definition-class ((class structure-class) &rest initargs)
   (declare (ignore initargs))
-  (find-class 'structure-effective-slot-definition))
+  (sb-xc:find-class 'structure-effective-slot-definition))
 
 (defmethod compute-effective-slot-definition-initargs
     ((class slot-class) direct-slotds)
@@ -1217,7 +1217,7 @@
 ;;;       is a specially bootstrapped mechanism for making standard methods.
 (defmethod reader-method-class ((class slot-class) direct-slot &rest initargs)
   (declare (ignore direct-slot initargs))
-  (find-class 'standard-reader-method))
+  (sb-xc:find-class 'standard-reader-method))
 
 (defmethod add-reader-method ((class slot-class) generic-function slot-name slot-documentation source-location)
   (add-method generic-function
@@ -1234,7 +1234,7 @@
 
 (defmethod writer-method-class ((class slot-class) direct-slot &rest initargs)
   (declare (ignore direct-slot initargs))
-  (find-class 'standard-writer-method))
+  (sb-xc:find-class 'standard-writer-method))
 
 (defmethod add-writer-method ((class slot-class) generic-function slot-name slot-documentation source-location)
   (add-method generic-function
@@ -1251,7 +1251,7 @@
 
 (defmethod add-boundp-method ((class slot-class) generic-function slot-name slot-documentation source-location)
   (add-method generic-function
-              (make-a-method (constantly (find-class 'standard-boundp-method))
+              (make-a-method (constantly (sb-xc:find-class 'standard-boundp-method))
                              class
                              ()
                              (list (or (class-name class) 'object))
@@ -1383,7 +1383,7 @@
       class)))
 
 (defmethod make-instances-obsolete ((class symbol))
-  (make-instances-obsolete (find-class class))
+  (make-instances-obsolete (sb-xc:find-class class))
   ;; ANSI wants the class name when called with a symbol.
   class)
 
@@ -1416,7 +1416,7 @@
 
 (defvar *in-obsolete-instance-trap* nil)
 (defvar *the-wrapper-of-structure-object*
-  (class-wrapper (find-class 'structure-object)))
+  (class-wrapper (sb-xc:find-class 'structure-object)))
 
 (define-condition obsolete-structure (error)
   ((datum :reader obsolete-structure-datum :initarg :datum))
@@ -1534,7 +1534,7 @@
       (dolist (class cpl)
         (macrolet
             ((frob (class-name)
-               `(when (eq class (find-class ',class-name))
+               `(when (eq class (sb-xc:find-class ',class-name))
                   (error 'metaobject-initialization-violation
                          :format-control "~@<Cannot ~S objects into ~S metaobjects.~@:>"
                          :format-arguments (list 'change-class ',class-name)
@@ -1558,7 +1558,7 @@
                       :references
                       (list '(:amop :generic-function ensure-class-using-class)
                             '(:amop :initialization class))))
-        (when (eq class (find-class 'class))
+        (when (eq class (sb-xc:find-class 'class))
           (return nil))))
     (%change-class instance new-class initargs)))
 
@@ -1570,7 +1570,7 @@
       (dolist (class cpl)
         (macrolet
             ((frob (class-name)
-               `(when (eq class (find-class ',class-name))
+               `(when (eq class (sb-xc:find-class ',class-name))
                   (error 'metaobject-initialization-violation
                          :format-control "~@<Cannot ~S objects into ~S metaobjects.~@:>"
                          :format-arguments (list 'change-class ',class-name)
@@ -1598,7 +1598,7 @@
          instance new-class 'funcallable-standard-class))
 
 (defmethod change-class ((instance t) (new-class-name symbol) &rest initargs)
-  (apply #'change-class instance (find-class new-class-name) initargs))
+  (apply #'change-class instance (sb-xc:find-class new-class-name) initargs))
 
 ;;;; The metaclass BUILT-IN-CLASS
 ;;;;

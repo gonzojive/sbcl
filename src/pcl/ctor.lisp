@@ -454,7 +454,7 @@
   (with-world-lock ()
     (let* ((class-or-name (ctor-class-or-name ctor))
            (class (if (symbolp class-or-name)
-                      (find-class class-or-name)
+                      (sb-xc:find-class class-or-name)
                       class-or-name)))
       (unless (class-finalized-p class)
         (finalize-inheritance class))
@@ -948,7 +948,7 @@
             ;; point (where it is not legal to define a method
             ;; applicable to them on system functions).  -- CSR,
             ;; 2010-07-13
-            (reset (find-class 'standard-object) t t))
+            (reset (sb-xc:find-class 'standard-object) t t))
            ((initialize-instance shared-initialize)
             (reset (class-of-1st-method-param method) t t))
            ((reinitialize-instance)
@@ -960,12 +960,12 @@
                 ;; this looks awfully expensive, but given that one
                 ;; can specialize on the SLOTD argument, nothing is
                 ;; safe.  -- CSR, 2004-07-12
-                (reset (find-class 'standard-object))))))))))
+                (reset (sb-xc:find-class 'standard-object))))))))))
 
 (defun precompile-ctors ()
   (dolist (ctor *all-ctors*)
     (when (null (ctor-class ctor))
-      (let ((class (find-class (ctor-class-or-name ctor) nil)))
+      (let ((class (sb-xc:find-class (ctor-class-or-name ctor) nil)))
         (when (and class (class-finalized-p class))
           (install-optimized-constructor ctor))))))
 

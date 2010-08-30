@@ -237,7 +237,7 @@ bootstrapping.
              (gf (gdefinition fspec))
              (methods (mapcar (lambda (method)
                                 (let* ((lambda-list (first method))
-                                       (specializers (mapcar #'find-class (second method)))
+                                       (specializers (mapcar #'sb-xc:find-class (second method)))
                                        (method-fn-name (third method))
                                        (fn-name (or method-fn-name fspec))
                                        (fn (fdefinition fn-name))

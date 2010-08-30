@@ -37,37 +37,7 @@
 
 (in-package "SB!PCL")
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-(defvar *optimize-speed*
-  '(optimize (speed 3) (safety 0)))
-) ; EVAL-WHEN
 
-(defmacro dotimes-fixnum ((var count &optional (result nil)) &body body)
-  `(dotimes (,var (the fixnum ,count) ,result)
-     (declare (fixnum ,var))
-     ,@body))
-
-(declaim (inline random-fixnum))
-(defun random-fixnum ()
-  (random (1+ most-positive-fixnum)))
-
-(def!constant n-fixnum-bits (integer-length sb-xc:most-positive-fixnum))
-
-;;; Lambda which executes its body (or not) randomly. Used to drop
-;;; random cache entries.
-(defmacro randomly-punting-lambda (lambda-list &body body)
-  (with-unique-names (drops drop-pos)
-    `(let ((,drops (random-fixnum))
-           (,drop-pos ,n-fixnum-bits))
-       (declare (fixnum ,drops)
-                (type (integer 0 ,n-fixnum-bits) ,drop-pos))
-       (lambda ,lambda-list
-         (when (logbitp (the unsigned-byte (decf ,drop-pos)) ,drops)
-           (locally ,@body))
-         (when (zerop ,drop-pos)
-           (setf ,drops (random-fixnum)
-                 ,drop-pos ,n-fixnum-bits))))))
-
 ;;;; early definition of WRAPPER
 ;;;;
 ;;;; Most WRAPPER stuff is defined later, but the DEFSTRUCT itself
@@ -156,7 +126,8 @@
 (define-compiler-macro fsc-instance-p (fin)
   `(pcl-funcallable-instance-p ,fin))
 
-(defmacro fsc-instance-wrapper (fin)
+#sb-xc (declaim (inline fsc-instance-wrapper))
+(defun fsc-instance-wrapper (fin)
   #+sb-xc-host
   `(xc-standard-funcallable-instance-layout ,fin)
   #+sb-xc
@@ -206,9 +177,9 @@
   (declare (ignore depth))
   (print-unreadable-object (instance stream :type t :identity t)
     (let ((class (class-of instance)))
-      (when (or (eq class (find-class 'standard-class nil))
-                (eq class (find-class 'funcallable-standard-class nil))
-                (eq class (find-class 'built-in-class nil)))
+      (when (or (eq class (sb-xc:find-class 'standard-class nil))
+                (eq class (sb-xc:find-class 'funcallable-standard-class nil))
+                (eq class (sb-xc:find-class 'built-in-class nil)))
         (princ (early-class-name instance) stream)))))
 
 ;;; This is the value that we stick into a slot to tell us that it is

@@ -70,7 +70,7 @@
 
 (defun load-short-defcombin (type-name operator ioa doc source-location)
   (let* ((specializers
-           (list (find-class 'generic-function)
+           (list (sb-xc:find-class 'generic-function)
                  (intern-eql-specializer type-name)
                  *the-class-t*))
          (old-method
@@ -224,7 +224,7 @@
 (defun load-long-defcombin
     (type-name doc function args-lambda-list source-location)
   (let* ((specializers
-           (list (find-class 'generic-function)
+           (list (sb-xc:find-class 'generic-function)
                  (intern-eql-specializer type-name)
                  *the-class-t*))
          (old-method

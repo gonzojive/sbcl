@@ -48,28 +48,44 @@ mostly functional except real generic function objects have not yet
 been properly initialized, along with their methods. `fixup.lisp`
 
 
+## Bootstrapping in the host
 
-real generic function when `!fix-early-generic-functions` which is
-called when `fixup.lisp` is executed.  The original functions are
-defined by `defuns` and later replaced according to
-`*!generic-function-fixupes*` which will replace the entire function
-with a generic, and then establish methods with function bodies
-provided by functions that have been defuned.  `boot.lisp` also
-defines so-called 'early functions' which are regular defuns later
-replaced in a less complicated way (see `*!early-function-specs*`).
-Though at least `load-defclass` is replaced by other means.
+The bootstrapping process could probably take place in the host lisp,
+which could then dump everything to the cold image, which could take
+further steps to set up CLOS at cold boot.
 
-`braid.lisp` defines a bunch of functions starting with `!bootstrap`
-and is where the "early" version of everything becomes a bona fide
-metaobject.  
+The stategy for achieving this is so:
 
+It's probably least confusing to rely on PCL to establish actual
+usable objects, including funcallable generic functions, rather than
+doing things like compiling a generic function using the host's CLOS
+and the target CLOS simultaneously.  Maybe.  It might make more sense
+later on, but for now let's make that assumption.
 
-A number of functions that will eventually be implemented as generic
-functions are first implemented by defun.
+Assuming we were able to get PCL completely loaded (into boot state
+'complete) on the host, we would have a full class hierarchy and many
+instances of those classes instantiated--in particular standard
+generic functions, methods, specializers, and a few others.  It should
+be fairly easy to at least dump the class hierarchy, since the class
+of each class is either standard-class, built-in-class, or
+funcallable-standard-class as specified by the MOP.
 
-For example, `(setf (gdefinition 'load-defclass) #'real-load-defclass)` 
-is used to set the real definition for load-defclass after the 
-bootstrap is mostly complete.  
+The strategy for bootstrapping classes is pretty straightforward:
+introduce a form called def!class that, when seen by the host, creates
+a representation of a class object used by the cross-compiler, much
+like sb-xc:defstruct.  At cold init or genesis, link up find-class to
+work and maybe take special care t make circularities point to the right place.
+
+The strategy for bootstrapping functions is a much more complicated
+because we must compile code both for the host machine to properly
+bootstrap things and then for the target to have the "real"
+implementations of everything.  There is the problem that right now in
+PCL, there are implementations of functions and macros of the CL
+package, but we will probably want to use the PCL definition over the
+host's CL definition when compiling a lot of early code.  But on the
+target we want to use the CL version.  (Does sb-xc:... already proide
+this trickery?)  To accomplish this, we will define functions like
+!BOOTSTRAP-FIND-CLASS
 
 ## What files are relevant to the bootstrap?
 

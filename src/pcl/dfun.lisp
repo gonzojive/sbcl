@@ -208,7 +208,7 @@ metatypes argument) is processed such that each element is either T or
 (defun compute-standard-slot-locations ()
   (let ((new (make-hash-table :test 'equal)))
     (dolist (class-name *standard-classes*)
-      (let ((class (find-class class-name)))
+      (let ((class (sb-xc:find-class class-name)))
         (dolist (slot (class-slots class))
           (setf (gethash (cons class (slot-definition-name slot)) new)
                 (slot-definition-location slot)))))
@@ -1149,7 +1149,7 @@ the generic function GF and wrapper WRAPPER."
                  else if (member gf-name writers :test #'equal)
                    return (values slotd 'writer))))
     (dolist (class-name *standard-classes*)
-      (let ((class (find-class class-name)))
+      (let ((class (sb-xc:find-class class-name)))
         (multiple-value-bind (slotd accessor-type)
             (standard-class-slot-access gf class)
           (when slotd
@@ -1604,7 +1604,7 @@ the generic function GF and wrapper WRAPPER."
                            (class-direct-subclasses class)
                            (early-class-direct-subclasses class))))))
       (do-class (if (symbolp root)
-                    (find-class root)
+                    (sb-xc:find-class root)
                     root)))
     nil))
 

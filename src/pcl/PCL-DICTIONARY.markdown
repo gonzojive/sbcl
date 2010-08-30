@@ -2,6 +2,8 @@
 
 Terms used in PCL -- not necessarily in the MOP or CLOS itself.
 
+classoid:
+
 early method: an object used to represent an method object, before
 real methods have been defined.  representation is described in
 EARLY-MAKE-A-METHOD

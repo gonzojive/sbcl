@@ -157,9 +157,9 @@
   (initialize-method-function initargs method))
 
 (defvar *the-class-generic-function*
-  (find-class 'generic-function))
+  (sb-xc:find-class 'generic-function))
 (defvar *the-class-standard-generic-function*
-  (find-class 'standard-generic-function))
+  (sb-xc:find-class 'standard-generic-function))
 
 (defmethod shared-initialize :before
            ((generic-function standard-generic-function)
@@ -185,7 +185,7 @@
                   generic-function initarg value string)))
     (cond (method-class-supplied-p
            (when (symbolp method-class)
-             (setq method-class (find-class method-class)))
+             (setq method-class (sb-xc:find-class method-class)))
            (unless (and (classp method-class)
                         (*subtypep (class-eq-specializer method-class)
                                    *the-class-method*))
@@ -236,10 +236,10 @@ Note: During bootstrapping, this function is allowed to return NIL."
           ((or (null gf?)
                (not (generic-function-p gf?)))          ; Someone else MIGHT
                                                         ; error at load time.
-           (class-prototype (find-class 'standard-method)))
+           (class-prototype (sb-xc:find-class 'standard-method)))
           (t
             (class-prototype (or (generic-function-method-class gf?)
-                                 (find-class 'standard-method)))))))
+                                 (sb-xc:find-class 'standard-method)))))))
 
 (defun real-add-named-method (generic-function-name qualifiers
                               specializers lambda-list &rest other-initargs)
@@ -694,7 +694,7 @@ Note: During bootstrapping, this function is allowed to return NIL."
 (defun proclaim-incompatible-superclasses (classes)
   (setq classes (mapcar (lambda (class)
                           (if (symbolp class)
-                              (find-class class)
+                              (sb-xc:find-class class)
                               class))
                         classes))
   (dolist (class classes)
@@ -1635,7 +1635,7 @@ Note: During bootstrapping, this function is allowed to return NIL."
                     (t (multiple-value-bind (dfun cache info)
                            (make-final-dfun-internal
                             gf
-                            (mapcar (lambda (x) (list (find-class x)))
+                            (mapcar (lambda (x) (list (sb-xc:find-class x)))
                                     '(sb-kernel::control-stack-exhausted
                                       sb-kernel::binding-stack-exhausted
                                       sb-kernel::alien-stack-exhausted
