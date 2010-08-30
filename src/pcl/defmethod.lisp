@@ -1617,6 +1617,7 @@ information available for the given function to supplement."
 (declaim (list **standard-method-classes**))
 (defglobal **standard-method-classes** nil)
 
+;;; avoid infinite recursion, I assume -- RED 08/2010
 (defun safe-method-specializers (method)
   (if (member (class-of method) **standard-method-classes** :test #'eq)
       (clos-slots-ref (std-instance-slots method) +sm-specializers-index+)
@@ -1634,6 +1635,7 @@ information available for the given function to supplement."
       (clos-slots-ref (std-instance-slots method) +sm-qualifiers-index+)
       (method-qualifiers method)))
 
+;; FIXME: documentation
 (defun set-arg-info1 (gf arg-info new-method methods was-valid-p first-p)
   #+sb-xc-host
   (declare (optimize (debug 3)))
@@ -1862,12 +1864,12 @@ EARLY-METHOD."
 
 (defun early-method-class (early-method)
   (aver (early-method-p early-method))
-  #+sb-xc-host (!bootstrap-find-class (car (fifth early-method)))
-  #+sb-xc      (find-class (car (fifth early-method))))
+  #+sb-xc-host (!bootstrap-find-class (car (early-method-real-make-a-method-args early-method)))
+  #+sb-xc      (find-class (car (early-method-real-make-a-method-args early-method))))
 
 (defun early-method-standard-accessor-p (early-method)
   (aver (early-method-p early-method))
-  (let ((class (first (fifth early-method))))
+  (let ((class (first (early-method-real-make-a-method-args early-method))))
     (or (eq class 'standard-reader-method)
         (eq class 'standard-writer-method)
         (eq class 'standard-boundp-method))))
@@ -1875,7 +1877,7 @@ EARLY-METHOD."
 (defun early-method-standard-accessor-slot-name (early-method)
   (aver (early-method-p early-method))
   ;;; FIXME: this positional business is horrid
-  (eighth (fifth early-method)))
+  (eighth (early-method-real-make-a-method-args early-method)))
 
 
 ;;; Fetch the specializers of an early method. This is basically just
@@ -1903,48 +1905,50 @@ EARLY-METHOD."
                  (setf (fourth early-method)
                        (mapcar #+sb-xc #'find-class
                                #+sb-xc-host #'!bootstrap-find-class
-                               (cadddr (fifth early-method))))))
+                               (cadddr (early-method-real-make-a-method-args early-method))))))
             (t
-             (fourth (fifth early-method))))
+             (fourth (early-method-real-make-a-method-args early-method))))
       (error "~S is not an early-method." early-method)))
 
 (defun early-method-qualifiers (early-method)
   (aver (early-method-p early-method))
-  (second (fifth early-method)))
+  (second (early-method-real-make-a-method-args early-method)))
 
 (defun early-method-lambda-list (early-method)
   (aver (early-method-p early-method))
-  (third (fifth early-method)))
+  (third (early-method-real-make-a-method-args early-method)))
 
 (defun early-method-initargs (early-method)
   (aver (early-method-p early-method))
-  (fifth (fifth early-method)))
+  (fifth (early-method-real-make-a-method-args early-method)))
 
 (defun (setf early-method-initargs) (new-value early-method)
   (aver (early-method-p early-method))
-  (setf (fifth (fifth early-method)) new-value))
+  (setf (fifth (early-method-real-make-a-method-args early-method)) new-value))
 
-(defun early-add-named-method (generic-function-name qualifiers
-                               specializers arglist &rest initargs
-                               &key documentation definition-source
-                               &allow-other-keys)
-  (let* (;; we don't need to deal with the :generic-function-class
-         ;; argument here because the default,
-         ;; STANDARD-GENERIC-FUNCTION, is right for all early generic
-         ;; functions.  (See REAL-ADD-NAMED-METHOD)
-         (gf (ensure-generic-function generic-function-name))
-         (existing
+(define-early-function (add-named-method early-add-named-method real-add-named-method)
+  (:early
+   (generic-function-name qualifiers
+                          specializers arglist &rest initargs
+                          &key documentation definition-source
+                          &allow-other-keys)
+   (let* ( ;; we don't need to deal with the :generic-function-class
+          ;; argument here because the default,
+          ;; STANDARD-GENERIC-FUNCTION, is right for all early generic
+          ;; functions.  (See REAL-ADD-NAMED-METHOD)
+          (gf (ensure-generic-function generic-function-name))
+          (existing
            (dolist (m (early-gf-methods gf))
              (when (and (equal (early-method-specializers m) specializers)
                         (equal (early-method-qualifiers m) qualifiers))
                (return m)))))
-    (setf (getf (getf initargs 'plist) :name)
-          (make-method-spec gf qualifiers specializers))
-    (let ((new (make-a-method 'standard-method qualifiers arglist
-                              specializers initargs documentation
-                              :definition-source definition-source)))
-      (when existing (remove-method gf existing))
-      (add-method gf new))))
+     (setf (getf (getf initargs 'plist) :name)
+           (make-method-spec gf qualifiers specializers))
+     (let ((new (make-a-method 'standard-method qualifiers arglist
+                               specializers initargs documentation
+                               :definition-source definition-source)))
+       (when existing (remove-method gf existing))
+       (add-method gf new)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2001,4 +2005,3 @@ EARLY-METHOD."
               nil))
       (real-get-method generic-function qualifiers specializers errorp)))
 
-(setq **boot-state** 'early)

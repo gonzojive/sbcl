@@ -23,7 +23,12 @@
 
 (in-package "SB!PCL")
 
-(defvar *!early-generic-functions* ())
+(defvar *!early-generic-functions* ()
+  #!+sb-doc
+  "A list of early generic function names (SPECs more specifically).
+ENSURE-GENERIC-FUNCTION-USING-CLASS keeps track of early generic
+functions as they are defined and conses up this list of their
+names.")
 
 ;; The main defgeneric macro.  
 (sb-xc:defmacro defgeneric (fun-name lambda-list &body options)

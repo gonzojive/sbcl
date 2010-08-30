@@ -785,6 +785,7 @@
  ("src/pcl/cache"              )
  ("src/pcl/dlisp"              )
  ("src/pcl/parse-lambda-list")
+ ("src/pcl/bootstrapping-macros")
  ("src/pcl/defgeneric")
  ("src/pcl/defmethod")
  ("src/pcl/boot")

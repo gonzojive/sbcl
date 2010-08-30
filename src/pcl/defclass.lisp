@@ -400,6 +400,14 @@
   (length (early-class-slots class-name)))
 
 (defun early-collect-inheritance (class-name)
+  #!+sb-doc
+  "Returns the following values:
+
+   (early-slots early-cpl early-default-initargs early-direct-subclass-names) 
+
+   Where EARLY-SLOTS is a list of all the class's slots, including
+those inherited from superclasses and the same for default-initargs.
+EARLY-CPL is the class names of the early class precedence list."
   ;;(declare (values slots cpl default-initargs direct-subclasses))
   (let ((cpl (early-collect-cpl class-name)))
     (values (early-collect-slots cpl)
@@ -407,11 +415,15 @@
             (early-collect-default-initargs cpl)
             (let (collect)
               (dolist (definition *early-class-definitions*)
-                (when (memq class-name (ecd-superclass-names definition))
+                (when (find class-name (ecd-superclass-names definition))
                   (push (ecd-class-name definition) collect)))
               (nreverse collect)))))
 
 (defun early-collect-slots (cpl)
+  #!+sb-doc
+  "Returns a list of all the class's slots, including those inherited
+from superclasses.  Returns the definitions themselves, not just the
+names."
   (let* ((definitions (mapcar #'early-class-definition cpl))
          (super-slots (mapcar #'ecd-canonical-slots definitions))
          (slots (apply #'append (reverse super-slots))))
@@ -427,6 +439,8 @@
     slots))
 
 (defun early-collect-cpl (class-name)
+  #!+sb-doc
+  "Returns the early class precedence list as a list of class names."
   (labels ((walk (c)
              (let* ((definition (early-class-definition c))
                     (supers (ecd-superclass-names definition)))
@@ -435,6 +449,9 @@
     (remove-duplicates (walk class-name) :from-end nil :test #'eq)))
 
 (defun early-collect-default-initargs (cpl)
+  #!+sb-doc
+  "Returns a list of all the class's default initargs, including those
+inherited from superclasses."
   (let ((default-initargs ()))
     (dolist (class-name cpl)
       (let* ((definition (early-class-definition class-name))
@@ -450,6 +467,9 @@
     (reverse default-initargs)))
 
 (defun !bootstrap-slot-index (class-name slot-name)
+  #!+sb-doc
+  "Returns the index of the slot named SLOT-NAME in the early class
+CLASS-NAME's slot's vector"
   (or (position slot-name (early-class-slots class-name))
       (error "~S not found" slot-name)))
 

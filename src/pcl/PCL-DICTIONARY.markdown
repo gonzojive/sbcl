@@ -19,4 +19,6 @@ to be replaced
 
 # Abbreviations
 
+cpl: Class Precedence List
+
 emf: Effective Method Function

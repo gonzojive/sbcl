@@ -30,9 +30,33 @@
 ;;;; specification.
 
 (in-package "SB!PCL")
+
+;;; cross-compiler versions of find-class used during bootstrapping
+#+sb-xc-host
+(defparameter *!bootstrap-class-objects* ()) ;; alist of (name xc-standard-instance)classes defined with-find-class
+
+#+sb-xc-host
+(defun !bootstrap-find-class  (symbol &optional (errorp t))
+  (or (cdr (find symbol *!bootstrap-class-objects* :key #'car :test #'equal))
+      (and errorp (error "Found no class named ~S" symbol))))
+
+#+sb-xc-host
+(defun (setf !bootstrap-find-class) (new-value name)
+  (declare (optimize (debug 3)))
+  (setf *!bootstrap-class-objects*
+        (cons (cons name new-value)
+              (remove name *!bootstrap-class-objects* :key #'car :test #'equal))))
+
 
+
+;;; FIXME: allocate-standard-instance and
+;;; allocate-standard-funcallable-instance are almost identical.
 (defun allocate-standard-instance (wrapper
                                    &optional (slots-init nil slots-init-p))
+  #!+sb-doc
+  "Allocates an instance of STANDARD-INSTANCE with wrapper WRAPPER.
+If a value is passed for SLOTS-INIT then the slots arra of the
+instance is initialized with the contents of the list SLOTS-INIT."
   #+sb-xc-host
   (declare (optimize (debug 3)))
   (let ((instance (%make-standard-instance nil (get-instance-hash-code)))
@@ -56,6 +80,11 @@
 
 (defmacro allocate-standard-funcallable-instance-slots
     (wrapper &optional slots-init-p slots-init)
+  #!+sb-doc
+  "If a non-null value is passed for SLOTS-INIT then the slots array
+of the instance is initialized with the contents of the list
+SLOTS-INIT; otherwise the initial contents of the slots is
++SLOT-UNBOUND+."
   `(let ((no-of-slots (wrapper-no-of-instance-slots ,wrapper)))
     ,(if slots-init-p
          `(if ,slots-init-p
@@ -72,6 +101,11 @@
 
 (defun allocate-standard-funcallable-instance
     (wrapper &optional (slots-init nil slots-init-p))
+  #!+sb-doc
+  "Allocates an instance of STANDARD-FUNCALLABLE-INSTANCE with wrapper WRAPPER.
+If a value is passed for SLOTS-INIT then the slots array of the
+instance is initialized with the contents of the list SLOTS-INIT."
+
   #+sb-xc-host
   (declare (optimize (debug 3)))
   (let ((fin (%make-standard-funcallable-instance
@@ -95,6 +129,9 @@
 ;;;; This function builds the base metabraid from the early class definitions.
 
 (defmacro !initial-classes-and-wrappers (&rest classes)
+  #!+sb-doc
+  "Expands each class name in the list of class names CLASSES into
+forms that setf the wrapper, class, and (find-class class)."
   `(progn
      ,@(mapcar (lambda (class)
                  (let ((wr (format-symbol (pcl-package) "~A-WRAPPER" class)))
@@ -110,23 +147,6 @@
                           (wrapper-class ,wr) ,class
                           (!bootstrap-find-class ',class) ,class)))
                classes)))
-
-;;; cross-compiler versions of find-class used during bootstrapping
-#+sb-xc-host
-(defparameter *!bootstrap-class-objects* ()) ;; alist of (name xc-standard-instance)classes defined with-find-class
-
-#+sb-xc-host
-(defun !bootstrap-find-class  (symbol &optional (errorp t))
-  (or (cdr (find symbol *!bootstrap-class-objects* :key #'car :test #'equal))
-      (and errorp (error "Found no class named ~S" symbol))))
-
-#+sb-xc-host
-(defun (setf !bootstrap-find-class) (new-value name)
-  (declare (optimize (debug 3)))
-  (setf *!bootstrap-class-objects*
-        (cons (cons name new-value)
-              (remove name *!bootstrap-class-objects* :key #'car :test #'equal))))
-  
 
 (defun !bootstrap-meta-braid ()
   #+sb-xc-host
@@ -144,6 +164,11 @@
          standard-effective-slot-definition
          class-eq-specializer-wrapper class-eq-specializer
          standard-generic-function-wrapper standard-generic-function)
+
+    ;; 1.  Make a real class metaobject for the basic classes.
+    ;; ALLOCATE-STANDARD-INSTANCE each metaclass and establish a
+    ;; wrapper for it with BOOT-MAKE-WRAPPER.  Also set up (find-class
+    ;; class-name) to point to the right instance
     (!initial-classes-and-wrappers standard-class
                                    funcallable-standard-class
                                    slot-class
@@ -154,9 +179,7 @@
                                    standard-effective-slot-definition
                                    class-eq-specializer
                                    standard-generic-function)
-    ;; First, make a class metaobject for each of the early classes. For
-    ;; each metaobject we also set its wrapper. Except for the class T,
-    ;; the wrapper is always that of STANDARD-CLASS.
+    ;; 2.  Allocate a real class metaobject for each of the early classes.
     (dolist (definition *early-class-definitions*)
       (let* ((name (ecd-class-name definition))
              (meta (ecd-metaclass definition))
@@ -171,6 +194,8 @@
              (class (or (!bootstrap-find-class name nil)
                         (allocate-standard-instance wrapper))))
         (setf (!bootstrap-find-class name) class)))
+    ;; 3.  Initialize the real class metaobjects just allocated for
+    ;; each of the early classes.
     (dolist (definition *early-class-definitions*)
       (let ((name (ecd-class-name definition))
             (meta (ecd-metaclass definition))
@@ -180,6 +205,8 @@
             (other-initargs (ecd-other-initargs definition)))
         (let ((direct-default-initargs
                (getf other-initargs :direct-default-initargs)))
+          ;; Determine slot definitions, initargs, subclass names for
+          ;; the early class, and set up its wrapper
           (multiple-value-bind (slots cpl default-initargs direct-subclasses)
               (early-collect-inheritance name)
             (let* ((class (!bootstrap-find-class name))
@@ -216,7 +243,7 @@
                   (error "Slot allocation ~S is not supported in bootstrap."
                          (getf slot :allocation))))
 
-              (when (typep wrapper 'wrapper)
+              (when (typep wrapper 'wrapper) ;; When will a wrapper not be of type 'wrapper?
                 (setf (wrapper-instance-slots-layout wrapper)
                       (mapcar #'canonical-slot-name slots))
                 (setf (wrapper-class-slots wrapper)
@@ -226,6 +253,7 @@
                               (allocate-standard-funcallable-instance wrapper)
                               (allocate-standard-instance wrapper)))
 
+              ;; Make the slot definitions!
               (setq direct-slots
                     (!bootstrap-make-slot-definitions
                      name class direct-slots
@@ -265,11 +293,13 @@
                   class name class-eq-specializer-wrapper source
                   direct-supers direct-subclasses cpl wrapper))))))))
 
+    ;; 4.  Perform extra steps to set up standard method classes
     (setq **standard-method-classes**
           (mapcar (lambda (name)
                     (symbol-value (make-class-symbol name)))
                   *standard-method-class-names*))
 
+    ;; 5.  Perform extra steps to set up standard method combination class
     (let* ((smc-class (!bootstrap-find-class 'standard-method-combination))
            (smc-wrapper (!bootstrap-get-slot 'standard-class
                                              smc-class
@@ -293,10 +323,23 @@
         &optional
         (proto nil proto-p)
         direct-slots slots direct-default-initargs default-initargs)
+  #!+sb-doc
+  "Sets up the slots for an already allocated class object CLASS with
+metaclass named METACLASS-NAME, name NAME, etc.
+
+PROTO is the prototype object of the class, if one has been
+instatiated already.
+
+DIRECT-SUPERS, DIRECT-SUBCLASSES, and CPL may be lists of class names,
+not the class objects themselves, in which case !bootstrap-find-class
+should be used to find the actual class objects
+
+DIRECT-SLOTS and SLOTS are real slot definition objects instantiated
+with !BOOTSTRAP-MAKE-SLOT-DEFINITIONS"
+
   #+sb-xc-host
   (declare (optimize (debug 3)))
 
-(/show0 "Bootstrapping a class")
   (flet ((classes (names) (mapcar #'!bootstrap-find-class names))
          (set-slot (slot-name value)
            (!bootstrap-set-slot metaclass-name class slot-name value)))
@@ -304,7 +347,6 @@
     (set-slot 'finalized-p t)
     (set-slot 'source source)
     (set-slot 'safe-p nil)
-(/show0 "Bootstrapping a class 2")
     (set-slot '%type (if (eq class (!bootstrap-find-class t))
                          t
                          ;; FIXME: Could this just be CLASS instead
@@ -328,13 +370,12 @@
     (set-slot 'direct-methods (cons nil nil))
     (set-slot 'wrapper wrapper)
     (set-slot '%documentation nil)
-(/show0 "Bootstrapping a class 3")
     (set-slot 'plist
               `(,@(and direct-default-initargs
                        `(direct-default-initargs ,direct-default-initargs))
                 ,@(and default-initargs
                        `(default-initargs ,default-initargs))))
-    (when (memq metaclass-name '(standard-class funcallable-standard-class
+    (when (find metaclass-name '(standard-class funcallable-standard-class
                                  structure-class condition-class
                                  slot-class))
       (set-slot 'direct-slots direct-slots)
@@ -359,51 +400,58 @@
                (!bootstrap-set-slot metaclass-name super 'direct-subclasses
                                     (cons class subclasses))))))
 
-(/show0 "Bootstrapping a class 4")
+    
     (case metaclass-name
       (structure-class
-(/show0 "Bootstrapping a class 5a")
-       (let ((constructor-sym '|STRUCTURE-OBJECT class constructor|))
-         (set-slot 'defstruct-form
-                   `(defstruct (structure-object (:constructor
-                                                  ,constructor-sym)
-                                                 (:copier nil))))
-         (set-slot 'defstruct-constructor constructor-sym)
-         (set-slot 'from-defclass-p t)
-         (set-slot 'plist nil)
-         (set-slot 'prototype (funcall constructor-sym))))
+         (let ((constructor-sym '|STRUCTURE-OBJECT class constructor|))
+           (set-slot 'defstruct-form
+                     `(defstruct (structure-object (:constructor
+                                                    ,constructor-sym)
+                                   (:copier nil))))
+           (set-slot 'defstruct-constructor constructor-sym)
+           (set-slot 'from-defclass-p t)
+           (set-slot 'plist nil)
+           (set-slot 'prototype (funcall constructor-sym))))
       (condition-class
-(/show0 "Bootstrapping a class 5b")
-       (set-slot 'prototype (make-condition name)))
+         (set-slot 'prototype (make-condition name)))
       (t
-(/show0 "Bootstrapping a class 5c")
-       (if (and proto-p (consp proto) (eq :late (car proto)))
-           (set-slot 'prototype (eval (second proto)))
-           (set-slot 'prototype
-                     (if proto-p proto (allocate-standard-instance wrapper))))))
+         (if (and proto-p (consp proto) (eq :late (car proto)))
+             (set-slot 'prototype (eval (second proto)))
+             (set-slot 'prototype
+                       (if proto-p proto (allocate-standard-instance wrapper))))))
     class))
 
-(defun !bootstrap-make-slot-definitions (name class slots wrapper effective-p)
+(defun !bootstrap-make-slot-definitions (class-name class early-slots slot-wrapper effective-p)
+  #!+sb-doc
+  "Makes the real slot definitions for the class CLASS, which has
+early slot definitions EARLY-SLOTS.  SLOT-WRAPPER is the wrapper
+instance to use for this slot definition."
+
   #+sb-xc-host
   (declare (optimize (debug 3)))
   (let ((index -1))
-    (mapcar (lambda (slot)
+    (mapcar (lambda (early-slot)
               (incf index)
               (!bootstrap-make-slot-definition
-               name class slot wrapper effective-p index))
-            slots)))
+               class-name class early-slot slot-wrapper effective-p index))
+            early-slots)))
 
 (defun !bootstrap-make-slot-definition
-    (name class slot wrapper effective-p index)
+    (class-name class early-slot slot-wrapper effective-p index)
+  #!+sb-doc
+  "Makes the real slot definition for the class CLASS, which has
+early slot definitions EARLY-SLOTS.  SLOT-WRAPPER is the wrapper
+instance to use for this slot definition."
+
   #+sb-xc-host
   (declare (optimize (debug 3)))
 
   (let* ((slotd-class-name (if effective-p
                                'standard-effective-slot-definition
                                'standard-direct-slot-definition))
-         (slotd (allocate-standard-instance wrapper))
-         (slot-name (getf slot :name)))
-    (flet ((get-val (name) (getf slot name))
+         (slotd (allocate-standard-instance slot-wrapper))
+         (slot-name (getf early-slot :name)))
+    (flet ((get-val (name) (getf early-slot name))
            (set-val (name val)
                     (!bootstrap-set-slot slotd-class-name slotd name val)))
       (set-val 'name         slot-name)
@@ -427,15 +475,18 @@
           (set-val 'boundp-function (make-optimized-std-boundp-method-function
                                      fsc-p nil slot-name index)))
         (set-val 'accessor-flags 7))
-      (when (and (eq name 'standard-class)
+      (when (and (eq class-name 'standard-class)
                  (eq slot-name 'slots) effective-p)
         (setq *the-eslotd-standard-class-slots* slotd))
-      (when (and (eq name 'funcallable-standard-class)
+      (when (and (eq class-name 'funcallable-standard-class)
                  (eq slot-name 'slots) effective-p)
         (setq *the-eslotd-funcallable-standard-class-slots* slotd))
       slotd)))
 
 (defun !bootstrap-accessor-definitions (early-p)
+  #!+sb-doc
+  "Makes the accessor definitionss for the early class definitions."
+
   #+sb-xc-host
   (declare (optimize (debug 3)))
 
@@ -478,10 +529,14 @@ before they have been converted into first-order generics."
   (unless (assoc (!early-gf-name generic-function)
                  *!generic-function-fixups*
                  :test #'equal)
-    (update-dfun generic-function)))
+    (update-dfun generic-function))
   (error "not implemented"))
 
 (defun !bootstrap-accessor-definition (class-name accessor-name slot-name type source-location)
+  #!+sb-doc
+  "Makes a single accessor definition for the early class named
+CLASS-NAME.  Type is one of the symbols READER WRITER BOUNDP."
+
   #+sb-xc-host
   (declare (optimize (debug 3)))
 
@@ -509,18 +564,18 @@ before they have been converted into first-order generics."
           (unless (assoc accessor-name *!generic-function-fixups*
                          :test #'equal)
             (update-dfun gf))
-          (!bootstrap-add-method  gf
-                                  (early-make-a-method
-                                   accessor-class
-                                   ()
-                                   arglist specls
-                                   (funcall make-method-function
-                                            class-name slot-name)
-                                   doc
-                                   :slot-name slot-name
-                                   :object-class class-name
-                                   :method-class-function (constantly (!bootstrap-find-class accessor-class))
-                                   :definition-source source-location))))))
+          (add-method  gf
+                       (early-make-a-method
+                        accessor-class
+                        ()
+                        arglist specls
+                        (funcall make-method-function
+                                 class-name slot-name)
+                        doc
+                        :slot-name slot-name
+                        :object-class class-name
+                        :method-class-function (constantly (!bootstrap-find-class accessor-class))
+                        :definition-source source-location))))))
 
 (defun !bootstrap-accessor-definitions1 (class-name
                                          slot-name
@@ -528,6 +583,10 @@ before they have been converted into first-order generics."
                                          writers
                                          boundps
                                          source-location)
+  #!+sb-doc
+  "Makes the accessor definitionss for the early class named
+CLASS-NAME.  READERS, WRITERS, and BOUNDPS are lists with names of
+generic functions for which accessors are to be defined."
   (flet ((do-reader-definition (reader)
            (!bootstrap-accessor-definition class-name
                                            reader
@@ -556,9 +615,13 @@ before they have been converted into first-order generics."
     (dolist (ecp *early-class-predicates*)
       (let ((class-name (car ecp))
             (predicate-name (cadr ecp)))
-        (make-class-predicate (!bootstrap-find-class class-name) predicate-name)))))
+        (!bootstrap-make-class-predicate (!bootstrap-find-class class-name) predicate-name)))))
 
+;;; as a reminder, built-in-classes are things like FIXNUM and the
+;;; like, not things like STANDARD-CLASS
 (defun !bootstrap-built-in-classes ()
+  #!+sb-doc
+  "Bootstraps the built-in-classes (things like FIXNUM etc.)."
 
   ;; First make sure that all the supers listed in
   ;; *BUILT-IN-CLASS-LATTICE* are themselves defined by
@@ -574,10 +637,10 @@ before they have been converted into first-order generics."
 
   ;; In the first pass, we create a skeletal object to be bound to the
   ;; class name.
-  (let* ((built-in-class (!bootstrap-find-class 'built-in-class))
-         (built-in-class-wrapper (class-wrapper built-in-class)))
+  (let* ((the-class-built-in-class (!bootstrap-find-class 'built-in-class))
+         (the-class-built-in-class-wrapper (class-wrapper the-class-built-in-class)))
     (dolist (e *built-in-classes*)
-      (let ((class (allocate-standard-instance built-in-class-wrapper)))
+      (let ((class (allocate-standard-instance the-class-built-in-class-wrapper)))
         (setf (!bootstrap-find-class (car e)) class))))
 
   ;; In the second pass, we initialize the class objects.
@@ -669,7 +732,10 @@ before they have been converted into first-order generics."
 (pushnew 'ensure-deffoo-class sb!kernel::*define-condition-hooks*)
 
 ;;; FIXME: only needed during bootstrap, and uses COMPILE
-(defun make-class-predicate (class name)
+(defun !bootstrap-make-class-predicate (class name)
+  #!+sb-doc
+  "Creates a method, and maybe generic function, with name NAME for
+the class CLASS."
   (let* ((gf (!bootstrap-ensure-generic-function name :lambda-list '(object)))
          ;; list of methods.  at first glance, the if and then clauses
          ;; are reversed, but they are probably correct and I just
@@ -705,6 +771,9 @@ before they have been converted into first-order generics."
 ;;; Set the inherits from CPL, and register the layout. This actually
 ;;; installs the class in the Lisp type system.
 (defun %update-lisp-class-layout (class layout)
+  #!+sb-doc
+  "Set the inherits from class precedence list, and register the
+layout. This actually installs the class in the Lisp type system."
   ;; Protected by *world-lock* in callers.
   (let ((classoid (layout-classoid layout))
         (olayout (class-wrapper class)))
@@ -745,6 +814,29 @@ before they have been converted into first-order generics."
      (setf (info :type :translator class)
            (lambda (spec) (declare (ignore spec)) classoid)))))
 
+
+(defun !update-lisp-class-layouts-and-set-class-type-translations ()
+  (dohash ((name x) sb!kernel::*classoid-cells*)
+    (when (classoid-cell-pcl-class x)
+      (let* ((class (find-class-from-cell name x))
+             (layout (class-wrapper class))
+             (lclass (layout-classoid layout))
+             (lclass-pcl-class (classoid-pcl-class lclass))
+             (olclass (find-classoid name nil)))
+        (if lclass-pcl-class
+            (aver (eq class lclass-pcl-class))
+            (setf (classoid-pcl-class lclass) class))
+
+        (%update-lisp-class-layout class layout)
+
+        (cond (olclass
+               (aver (eq lclass olclass)))
+              (t
+               (setf (find-classoid name) lclass)))
+
+        (%set-class-type-translation class name)))))
+
+;;;; Bootstrap!
 #+sb-xc
 (progn
   (!bootstrap-meta-braid)
@@ -752,29 +844,14 @@ before they have been converted into first-order generics."
   (!bootstrap-class-predicates t)
   (!bootstrap-accessor-definitions nil)
   (!bootstrap-class-predicates nil)
-  (!bootstrap-built-in-classes))
-
-(dohash ((name x) sb!kernel::*classoid-cells*)
-  (when (classoid-cell-pcl-class x)
-    (let* ((class (find-class-from-cell name x))
-           (layout (class-wrapper class))
-           (lclass (layout-classoid layout))
-           (lclass-pcl-class (classoid-pcl-class lclass))
-           (olclass (find-classoid name nil)))
-      (if lclass-pcl-class
-          (aver (eq class lclass-pcl-class))
-          (setf (classoid-pcl-class lclass) class))
-
-      (%update-lisp-class-layout class layout)
-
-      (cond (olclass
-             (aver (eq lclass olclass)))
-            (t
-             (setf (find-classoid name) lclass)))
-
-      (%set-class-type-translation class name))))
+  (!bootstrap-built-in-classes)
+  (!update-lisp-class-layouts-and-set-class-type-translations))
 
 (setq **boot-state** 'braid)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;  No applicable method and similar
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmethod no-applicable-method (generic-function &rest args)
   (error "~@<There is no applicable method for the generic function ~2I~_~S~

@@ -86,7 +86,9 @@
               (not (condition-classoid-p classoid))
               (defstruct-classoid-p classoid)))))
 
-;;; Symbol contruction utilities
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Symbol contruction utilities
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun format-symbol (package format-string &rest format-arguments)
   (without-package-locks
    (intern (apply #'format nil format-string format-arguments) package)))
@@ -97,10 +99,33 @@
 (defun make-wrapper-symbol (class-name)
   (format-symbol (pcl-package) "*THE-WRAPPER-~A*" (symbol-name class-name)))
 
+(defun interned-symbol-p (x)
+  #!+sb-doc
+  "Returns non-null if X is a symbol and is interned in a package."
+  (and (symbolp x) (symbol-package x)))
+
 (defun condition-type-p (type)
   (and (symbolp type)
        (condition-classoid-p (find-classoid type nil))))
-
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Misc. other utilities that used to be in macros.lisp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun get-declaration (name declarations &optional default)
+  "Returns the cdr of the first declaration with name NAME in the list
+of declarations forms DECLARATIONS."
+  (dolist (d declarations default)
+    (dolist (form (cdr d))
+      (when (and (consp form) (eq (car form) name))
+        (return-from get-declaration (cdr form))))))
+
+(defun declared-specials (declarations)
+  #!+sb-doc
+  "Returns a list of all the things declared special in the list of
+declarations."
+  (loop for (declare . specifiers) in declarations
+        append (loop for specifier in specifiers
+                     when (eq 'special (car specifier))
+                     append (cdr specifier))))
+
 (/show "finished with early-low.lisp")

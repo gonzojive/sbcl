@@ -72,16 +72,12 @@ bootstrapping.
                     ensure-generic-function-using-class
                     add-method remove-method))
 
-(defvar *!early-functions*
-  '((make-a-method  early-make-a-method real-make-a-method)
-    (add-named-method early-add-named-method real-add-named-method)))
-
 ;;; For each of the early functions, arrange to have it point to its
 ;;; early definition. Do this in a way that makes sure that if we
 ;;; redefine one of the early definitions the redefinition will take
 ;;; effect. This makes development easier.
 #+sb-xc
-(dolist (fns *!early-functions*)
+(dolist (fns *!early-function-specs*)
   (let ((name (car fns))
         (early-name (cadr fns)))
     (setf (gdefinition name)
@@ -204,7 +200,10 @@ bootstrapping.
       (setq *!early-generic-functions*
             (cons spec
                   (delete spec *!early-generic-functions* :test #'equal))))
-
+    
+    ;; Modify each generic function by making a real method for
+    ;; each of its early methods, setting the method-class to the now
+    ;; non-early class *the-class-standard-class* (and same for method combo)
     (dolist (early-gf-spec *!early-generic-functions*)
       (/show early-gf-spec)
       (let* ((gf (gdefinition early-gf-spec))
@@ -216,15 +215,22 @@ bootstrapping.
                                          early-method t))
                                   (apply #'real-make-a-method args)))
                               (early-gf-methods gf))))
+        ;; FIXME: What magic happens so that we can EARLY-GF-METHODS
+        ;; above (when processing accessors) and non-early
+        ;; GENERIC-FUNCTION-METHOD-CLASS now?  When does the class of
+        ;; the instance change from early to SGF?
         (setf (generic-function-method-class gf) *the-class-standard-method*)
         (setf (generic-function-method-combination gf)
               *standard-method-combination*)
         (set-methods gf methods)))
 
-    (dolist (fn *!early-functions*)
+    ;; Modify the simple early-function-specs to their real version.
+    ;; Why do we do this now in particular?
+    (dolist (fn *!early-function-specs*)
       (/show fn)
       (setf (gdefinition (car fn)) (fdefinition (caddr fn))))
 
+    ;; Run all the fixupes
     (dolist (fixup *!generic-function-fixups*)
       (/show fixup)
       (let* ((fspec (car fixup))
@@ -272,6 +278,8 @@ If there is no THE, returns the form itself."
          (third form))
         (t
          form)))
+
+(setq **boot-state** 'early)
 
 (sb-xc:defmacro with-slots (slots instance &body body)
   (let ((in (gensym)))

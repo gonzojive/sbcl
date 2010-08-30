@@ -38,6 +38,9 @@
 ;;; :SPECIAL
 ;;; T
 
+;(eval-when (:compile-toplevel :load-toplevel :execute)
+;  (error "Stop the loading here!"))
+
 ;;; We used to use a plain declaim here, but that is now inadequate
 ;;; because it has somewhat weird behavior when building target code
 ;;; from the cross-compiler, as we now do for PCL.  Specifically,

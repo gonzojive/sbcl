@@ -44,31 +44,13 @@
           ;; information around, I'm not sure. -- WHN 2000-12-30
           %variable-rebinding))
 
+;;; This DEFVAR was originally in defs.lisp, now moved here.
+;;;
+;;; Possible values are NIL, EARLY, BRAID, or COMPLETE.
+(declaim (type (member nil early braid complete) **boot-state**))
+(defglobal **boot-state** nil)
+
 (/show "done with DECLAIM DECLARATION")
-
-(defun get-declaration (name declarations &optional default)
-  "Returns the cdr of the first declaration with name NAME in the list
-of declarations forms DECLARATIONS."
-  (dolist (d declarations default)
-    (dolist (form (cdr d))
-      (when (and (consp form) (eq (car form) name))
-        (return-from get-declaration (cdr form))))))
-
-(defun declared-specials (declarations)
-  #!+sb-doc
-  "Returns a list of all the things declared special in the list of
-declarations."
-  (loop for (declare . specifiers) in declarations
-        append (loop for specifier in specifiers
-                     when (eq 'special (car specifier))
-                     append (cdr specifier))))
-
-(defun interned-symbol-p (x)
-  #!+sb-doc
-  "Returns non-null if X is a symbol and is interned in a package."
-  (and (symbolp x) (symbol-package x)))
-
-(/show "pcl/macros.lisp 85")
 
 (defmacro doplist ((key val) plist &body body)
   "Loops over the property list PLIST binding KEY and VAL at each
@@ -82,8 +64,6 @@ plist that has not yet been processed in the loop."
            (setq ,val (pop .plist-tail.))
            (progn ,@body))))
 
-(/show "pcl/macros.lisp 101")
-
 (defmacro dolist-carefully ((var list improper-list-handler) &body body)
   "Loops over the LIST as in DOLIST, but if the list turns out to be
 improper (current head of list isn't a cons calls the handler named by
@@ -96,6 +76,13 @@ IMPROPER-LIST-HANDLER"
                  (setq ,var (pop .dolist-carefully.))
                  ,@body)
                (,improper-list-handler)))))
+
+(defmacro function-funcall (form &rest args)
+  `(funcall (the function ,form) ,@args))
+
+(defmacro function-apply (form &rest args)
+  `(apply (the function ,form) ,@args))
+
 
 ;;;; FIND-CLASS
 ;;;;
@@ -106,6 +93,9 @@ IMPROPER-LIST-HANDLER"
 (declaim (inline legal-class-name-p))
 (defun legal-class-name-p (x)
   (symbolp x))
+
+(defun get-setf-fun-name (name)
+  `(setf ,name))
 
 (defvar *create-classes-from-internal-structure-definitions-p* t)
 
@@ -135,14 +125,6 @@ IMPROPER-LIST-HANDLER"
   (find-class-from-cell symbol
                         (find-classoid-cell symbol)
                         errorp))
-
-
-;;; This DEFVAR was originally in defs.lisp, now moved here.
-;;;
-;;; Possible values are NIL, EARLY, BRAID, or COMPLETE.
-(declaim (type (member nil early braid complete) **boot-state**))
-(defglobal **boot-state** nil)
-
 
 (/show "pcl/macros.lisp 187")
 
@@ -195,20 +177,10 @@ IMPROPER-LIST-HANDLER"
         (t
          (error "~S is not a legal class name." name))))
 
-(/show "pcl/macros.lisp 241")
-
-(defmacro function-funcall (form &rest args)
-  `(funcall (the function ,form) ,@args))
-
-(defmacro function-apply (form &rest args)
-  `(apply (the function ,form) ,@args))
-
-(/show "pcl/macros.lisp 249")
 
-(defun get-setf-fun-name (name)
-  `(setf ,name))
+
 
 #+sb-xc
 (defsetf slot-value set-slot-value)
-
+
 (/show "finished with pcl/macros.lisp")
