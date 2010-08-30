@@ -1429,20 +1429,41 @@ might be modified in the method body.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; load-defmethod
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun load-defmethod (class name quals specls ll initargs source-location)
+(defun load-defmethod (class name quals specializers ordinary-lambda-list initargs source-location)
+  #!+sb-doc
+  "Processes an expanded DEFMETHOD with class object CLASS, generic
+function name NAME, method qualifers list QUALS, specializer objects
+SPECIALIZERS, ordinary lambda-list ORDINARY-LAMBDA-LIST, method object initargs
+INITARGS, and source location SOURCE-LOCATION.
+
+Uses ADD-NAMED-METHOD to create and add a method to the generic
+function designated by GF-SPEC, and returns the method."
+  ;; LOAD-DEFMETHOD is the main function that operates at load-time
+  ;; and execution-time of the original defmacro form--it does not
+  ;; operate at macro-expansion time like many of the mechanisms
+  ;; related to defmethod.
+
+  ;; Essentially this just adds a 'METHOD-CELL initarg to initargs and
+  ;; calls LOAD-DEFMETHOD-INTERNAL
   (let ((method-cell (getf initargs 'method-cell)))
     (setq initargs (copy-tree initargs))
     (when method-cell
       (setf (getf initargs 'method-cell) method-cell))
-    #+nil
-    (setf (getf (getf initargs 'plist) :name)
-          (make-method-spec name quals specls))
-    (load-defmethod-internal class name quals specls
-                             ll initargs source-location)))
+
+    (load-defmethod-internal class name quals specializers
+                             ordinary-lambda-list initargs source-location)))
 
 (defun load-defmethod-internal
-    (method-class gf-spec qualifiers specializers lambda-list
+    (method-class gf-spec qualifiers specializers ordinary-lambda-list
                   initargs source-location)
+  #!+sb-doc
+  "Processes an expanded DEFMETHOD with class object CLASS, generic
+function name NAME, method qualifers list QUALS, specializer objects
+SPECIALIZERS, ordinary lambda-list ORDINARY-LAMBDA-LIST, method object initargs
+INITARGS, and source location SOURCE-LOCATION.
+
+Uses ADD-NAMED-METHOD to create and add a method to the generic
+function designated by GF-SPEC, and returns the method."
   (when (and (eq **boot-state** 'complete)
              (fboundp gf-spec))
     (let* ((gf (fdefinition gf-spec))
@@ -1455,42 +1476,59 @@ might be modified in the method body.
                     :qualifiers qualifiers :specializers specializers
                     :new-location source-location))))
   (let ((method (apply #'add-named-method
-                       gf-spec qualifiers specializers lambda-list
+                       gf-spec qualifiers specializers ordinary-lambda-list
                        :definition-source source-location
                        initargs)))
     (unless (or (eq method-class 'standard-method)
                 (eq (find-class method-class nil) (class-of method)))
-      ;; FIXME: should be STYLE-WARNING?
-      (format *error-output*
-              "~&At the time the method with qualifiers ~:S and~%~
+      (warn 'simple-style-warning
+            :format-control
+            "~&At the time the method with qualifiers ~:S and~%~
                specializers ~:S on the generic function ~S~%~
                was compiled, the method-class for that generic function was~%~
                ~S. But, the method class is now ~S, this~%~
                may mean that this method was compiled improperly.~%"
-              qualifiers specializers gf-spec
-              method-class (class-name (class-of method))))
+            :format-arguments
+            (list qualifiers specializers gf-spec
+                  method-class
+                  (class-name (class-of method)))))
     method))
 
 (defun make-method-spec (gf qualifiers specializers)
+  #!+sb-doc
+  "Returns a method-spec for a method on the generic function GF with
+qualifers QUALIFIERS and specializer objects SPECIALIZERS.
+
+Used to identify a method between definitions, for example, so that it
+can be replaced."
   (let ((name (generic-function-name gf))
         (unparsed-specializers (unparse-specializers gf specializers)))
     `(slow-method ,name ,@qualifiers ,unparsed-specializers)))
 
 (defun initialize-method-function (initargs method)
+  #!+sb-doc
+  "Given the initargs for the method METHOD, initializes the
+function (i.e. the code that implements the method)."
   (let* ((mf (getf initargs :function))
          (mff (and (typep mf '%method-function)
                    (%method-function-fast-function mf)))
          (plist (getf initargs 'plist))
          (name (getf plist :name))
          (method-cell (getf initargs 'method-cell)))
+    ;; Make the method cell point to the method.
+    ;; KLUDGE: Shouldn't this be done by the method initializer rather
+    ;; than this function?
     (when method-cell
       (setf (car method-cell) method))
+    ;; set up the names of the %method-function objects
     (when name
       (when mf
         (setq mf (set-fun-name mf name)))
       (when (and mff (consp name) (eq (car name) 'slow-method))
         (let ((fast-name `(fast-method ,@(cdr name))))
           (set-fun-name mff fast-name))))
+    ;; KLUDGE: Shouldn't this be done by the method initializer rather
+    ;; than this function?
     (when plist
       (let ((plist plist))
         (let ((snl (getf plist :slot-name-lists)))
@@ -1499,12 +1537,20 @@ might be modified in the method body.
                   (intern-pv-table :slot-name-lists snl))))))))
 
 (defun keyword-spec-name (x)
+  #!+sb-doc
+  "Returns the keyword-name from a form like
+
+{var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}"
   (let ((key (if (atom x) x (car x))))
     (if (atom key)
         (keywordicate key)
         (car key))))
 
 (defun ftype-declaration-from-lambda-list (lambda-list name)
+  #!+sb-doc
+  "Extracts an ftype type form from the ordinary lambda-list
+LAMBDA-LIST and function name NAME.  Also inspects the existing type
+information available for the given function to supplement."
   (multiple-value-bind (nrequired noptional keysp restp allow-other-keys-p
                                   keywords keyword-parameters)
       (analyze-lambda-list lambda-list)
@@ -1536,7 +1582,7 @@ might be modified in the method body.
                  *))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Standard method?  safe method?
+;;;;; Standard method (and safe method?)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defconstant +sm-specializers-index+
@@ -1681,9 +1727,8 @@ might be modified in the method body.
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Early versions of regular functions
+;;;;; Early methods
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defun early-make-a-method (class qualifiers arglist specializers initargs doc
                             &key slot-name object-class method-class-function
                             definition-source)
@@ -1743,7 +1788,7 @@ RESULT after RESULT is computed and before returning RESULT.
                  ;; Note that this only comes into play when there is
                  ;; more than one early method on an early gf.
                  parsed
-
+                 
                  ;; A list to which REAL-MAKE-A-METHOD can be applied
                  ;; to make a real method corresponding to this early
                  ;; one.
@@ -1761,6 +1806,19 @@ RESULT after RESULT is computed and before returning RESULT.
        (class qualifiers lambda-list specializers initargs doc
         &rest args &key slot-name object-class method-class-function
         definition-source)
+  #!+sb-doc
+  "Makes a method of class CLASS with qualifiers QUALIFIERS,
+ordinary lambda list LAMBDA-LIST, parsed specializers SPECIALIZERS,
+initargs INITARGS, documentation DOC,
+
+CLASS is the name of the class
+
+QUALIFIERS are the method qualifiers for the method
+
+SPECIALIZERS is a list of either class names (symbols) or class
+objects (anything that is not a symbol is assumed to be a class object).
+
+Returns an method object made by instantiating CLASS."
   (if method-class-function
       (let* ((object-class (if (classp object-class) object-class
                                (find-class object-class)))
@@ -1782,22 +1840,40 @@ RESULT after RESULT is computed and before returning RESULT.
              :lambda-list lambda-list :specializers specializers
              :documentation doc (append args initargs))))
 
+(defun early-method-p (thing)
+  #!+sb-doc
+  "Returns T if THING is an early method"
+  (when (and (consp thing)
+             (eq :early-method (car thing))
+             (= 5 (length thing)))
+    t))
+
 (defun early-method-function (early-method)
+  (aver (early-method-p early-method))
   (values (cadr early-method) (caddr early-method)))
 
+(defun early-method-real-make-a-method-args (early-method)
+  #!+sb-doc
+  "Returns a list of arguments to pass to the full MAKE-A-METHOD
+implementation (REAL-MAKE-A-METHOD) for the early method
+EARLY-METHOD."
+  (aver (early-method-p early-method))
+  (fifth early-method))
+
 (defun early-method-class (early-method)
+  (aver (early-method-p early-method))
   #+sb-xc-host (!bootstrap-find-class (car (fifth early-method)))
   #+sb-xc      (find-class (car (fifth early-method))))
 
-  
-
 (defun early-method-standard-accessor-p (early-method)
+  (aver (early-method-p early-method))
   (let ((class (first (fifth early-method))))
     (or (eq class 'standard-reader-method)
         (eq class 'standard-writer-method)
         (eq class 'standard-boundp-method))))
 
 (defun early-method-standard-accessor-slot-name (early-method)
+  (aver (early-method-p early-method))
   ;;; FIXME: this positional business is horrid
   (eighth (fifth early-method)))
 
@@ -1819,6 +1895,7 @@ RESULT after RESULT is computed and before returning RESULT.
 (defun early-method-specializers (early-method &optional objectsp)
   #+sb-xc-host
   (declare (optimize (debug 3)))
+  (aver (early-method-p early-method))
   (if (and (listp early-method)
            (eq (car early-method) :early-method))
       (cond ((eq objectsp t)
@@ -1832,15 +1909,19 @@ RESULT after RESULT is computed and before returning RESULT.
       (error "~S is not an early-method." early-method)))
 
 (defun early-method-qualifiers (early-method)
+  (aver (early-method-p early-method))
   (second (fifth early-method)))
 
 (defun early-method-lambda-list (early-method)
+  (aver (early-method-p early-method))
   (third (fifth early-method)))
 
 (defun early-method-initargs (early-method)
+  (aver (early-method-p early-method))
   (fifth (fifth early-method)))
 
 (defun (setf early-method-initargs) (new-value early-method)
+  (aver (early-method-p early-method))
   (setf (fifth (fifth early-method)) new-value))
 
 (defun early-add-named-method (generic-function-name qualifiers
@@ -1870,11 +1951,9 @@ RESULT after RESULT is computed and before returning RESULT.
 ;;;;; Early generics
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-
-;;; This is the early version of ADD-METHOD. Later this will become a
-;;; generic function. See !FIX-EARLY-GENERIC-FUNCTIONS which has
-;;; special knowledge about ADD-METHOD.
+;; This is the early version of ADD-METHOD. Later this will become a
+;; generic function. See !FIX-EARLY-GENERIC-FUNCTIONS which has
+;; special knowledge about ADD-METHOD.
 #+sb-xc
 (defun add-method (generic-function method)
   (when (not (fsc-instance-p generic-function))
@@ -1888,8 +1967,8 @@ RESULT after RESULT is computed and before returning RESULT.
                  :test #'equal)
     (update-dfun generic-function)))
 
-;;; This is the early version of REMOVE-METHOD. See comments on
-;;; the early version of ADD-METHOD.
+;; This is the early version of REMOVE-METHOD. See comments on
+;; the early version of ADD-METHOD.
 #+sb-xc
 (defun remove-method (generic-function method)
   (when (not (fsc-instance-p generic-function))
@@ -1904,8 +1983,8 @@ RESULT after RESULT is computed and before returning RESULT.
                  :test #'equal)
     (update-dfun generic-function)))
 
-;;; This is the early version of GET-METHOD. See comments on the early
-;;; version of ADD-METHOD.
+;; This is the early version of GET-METHOD. See comments on the early
+;; version of ADD-METHOD.
 #+sb-xc
 (defun get-method (generic-function qualifiers specializers
                                     &optional (errorp t))
