@@ -775,6 +775,7 @@
  ("src/pcl/declarations") ; processed even on the host for the sake of proclaiming thingsed used in macros
  ("src/pcl/early-low")
  ("src/pcl/macros")
+ ("src/pcl/bootstrapping-macros")
  ("src/pcl/compiler-support")
  ("src/pcl/low"                )
  ("src/pcl/slot-name"          )
@@ -785,7 +786,6 @@
  ("src/pcl/cache"              )
  ("src/pcl/dlisp"              )
  ("src/pcl/parse-lambda-list")
- ("src/pcl/bootstrapping-macros")
  ("src/pcl/defgeneric")
  ("src/pcl/defmethod")
  ("src/pcl/boot")

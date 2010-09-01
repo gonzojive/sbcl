@@ -32,9 +32,12 @@ while in the 'early state.
 accessors, and class predicates and creates the actual metaobjects out
 of them.  It leaves the list of generic function instances alone,
 however, and transitions to the 'braid state.  While in 'braid,
-classes are set up but generic functions and methods are still in
-their early-structure state.  Hence, we are "braiding" between
-first-class metaobjects and early generic functions.
+classes are , generic functions are not and methods are still in their
+early-structure state.  Hence, we are "braiding" between first-class
+metaobjects, partially initialized generic functions, and early
+methods.  What happens in between 'braid and 'complete is mostly the
+definition of many generic functions, and the "real" implementations
+of methods that had an early version.
 
 A few other files load while in 'braid.  `generic-functions.lisp`
 defines hundreds of generic functions used in PCL and CLOS, while
@@ -47,6 +50,10 @@ method to be called when the generic is invoked, so everything is
 mostly functional except real generic function objects have not yet
 been properly initialized, along with their methods. `fixup.lisp`
 
+`!fix-early-generic-functions` creates fully-initialized generics and
+methods from the early definitions.  Then in runs a few 'fixup forms
+to further process about a dozen of the defgenerics, as defined in
+`*!generic-function-fixups*`.
 
 ## Bootstrapping in the host
 
@@ -79,20 +86,29 @@ work and maybe take special care t make circularities point to the right place.
 The strategy for bootstrapping functions is a much more complicated
 because we must compile code both for the host machine to properly
 bootstrap things and then for the target to have the "real"
-implementations of everything.  There is the problem that right now in
-PCL, there are implementations of functions and macros of the CL
-package, but we will probably want to use the PCL definition over the
-host's CL definition when compiling a lot of early code.  But on the
-target we want to use the CL version.  (Does sb-xc:... already proide
-this trickery?)  To accomplish this, we will define functions like
-!BOOTSTRAP-FIND-CLASS
+implementations of everything.
+
+## Roadmap for implementing cold bootstrapping
+
+1. Define macros named according to the clever things PCL does for
+early/late definition of functions
+
+2. Rename every PCL-defined CL symbol to use sb!xc instead.
+
+3. Get host to get through NIL boot state
+
+4. Get host to get through early boot state
+
+5. Get host to get through braid boot state
+
+6. Write genesis/!cold-init code for PCL, and wade into cold init land
+
 
 ## What files are relevant to the bootstrap?
 
 `defclass.lisp` has support for early class definitions (including an
 `early-class-definition` structure -- ECD -- implemented as a list).
-
-
+...
 
 # Files
 
@@ -170,11 +186,11 @@ The PCL version of a layout.  Actually a wrapper inherits from layout.
 
 ## dlisp.lisp
 
-why is it called dlisp?
+Why is it called dlisp?
 
 ## boot.lisp
 
-Boot.lisp is much too big and varid and should be split up to make the
+Boot.lisp is much too big and varied and should be split up to make the
 system more understandable.  It defines both defmethod and defgeneric,
 and the early and late versions of functions related to almost all
 aspects of the system.  Top-level forms are somewhat scattered.  There

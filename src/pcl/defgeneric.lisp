@@ -205,7 +205,6 @@ names.")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Ensure-generic-function and friends
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#+sb-xc
 (defun ensure-generic-function (fun-name
                                 &rest all-keys
                                 &key environment source-location
@@ -440,6 +439,15 @@ names.")
 (defun make-early-gf (spec &optional lambda-list lambda-list-p
                       function argument-precedence-order source-location
                       documentation)
+  ;; Important note!  Unlike other early structures like classes and
+  ;; slot definitions, in SBCL we represent generic functions in the
+  ;; same memory location from early into late.  This means pointers
+  ;; to the early function do not need to be overwritten, and during
+  ;; the fixup phase no new object is created.  Where does this
+  ;; actually matter, and what happens if we take away this features?
+  ;; Dont' know.  -- RED 08/31/2010
+  #+sb-doc
+  "Creats an early generic function named SPEC "
   (let ((fin (allocate-standard-funcallable-instance
               *sgf-wrapper* *sgf-slots-init*)))
     (set-funcallable-instance-function

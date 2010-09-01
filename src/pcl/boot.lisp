@@ -170,9 +170,15 @@ bootstrapping.
 
 
 (defun !fix-early-generic-functions ()
+  #!+sb-doc
+  "Run at the end of the braid stage to boot PCL into the fully
+functional 'complete stage.  This converts the partially initialized
+early generic functions and their methods into fully-functional
+generics and methods."
   (let ((accessors nil))
     ;; Rearrange *!EARLY-GENERIC-FUNCTIONS* to speed up
-    ;; FIX-EARLY-GENERIC-FUNCTIONS.
+    ;; FIX-EARLY-GENERIC-FUNCTIONS.  -- accessors were already
+    ;; processed by 'BRAID
     (dolist (early-gf-spec *!early-generic-functions*)
       (when (every #'early-method-standard-accessor-p
                    (early-gf-methods (gdefinition early-gf-spec)))
@@ -215,14 +221,19 @@ bootstrapping.
                                          early-method t))
                                   (apply #'real-make-a-method args)))
                               (early-gf-methods gf))))
-        ;; FIXME: What magic happens so that we can EARLY-GF-METHODS
-        ;; above (when processing accessors) and non-early
+        ;; What magic happens so that we can EARLY-GF-METHODS above
+        ;; (when processing accessors) and non-early
         ;; GENERIC-FUNCTION-METHOD-CLASS now?  When does the class of
-        ;; the instance change from early to SGF?
+        ;; the instance change from early to SGF?  Actually, it has
+        ;; been an SGF all along--or at least, had the layout of an
+        ;; SGF all along.  The only difference now is that all its
+        ;; slots are initialized properly
+        (aver (early-gf-p gf))
         (setf (generic-function-method-class gf) *the-class-standard-method*)
         (setf (generic-function-method-combination gf)
               *standard-method-combination*)
-        (set-methods gf methods)))
+        (set-methods gf methods)
+        (aver (not (early-gf-p gf)))))
 
     ;; Modify the simple early-function-specs to their real version.
     ;; Why do we do this now in particular?

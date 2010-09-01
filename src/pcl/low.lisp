@@ -126,7 +126,7 @@
 (define-compiler-macro fsc-instance-p (fin)
   `(pcl-funcallable-instance-p ,fin))
 
-#sb-xc (declaim (inline fsc-instance-wrapper))
+#+sb-xc (declaim (inline fsc-instance-wrapper))
 (defun fsc-instance-wrapper (fin)
   #+sb-xc-host
   `(xc-standard-funcallable-instance-layout ,fin)

@@ -3,44 +3,16 @@
 SB-PCL:CANONIZE-DEFCLASS-SLOTS
 Notes on moving PCL into the cold image:
 
-There is an aweful kludge in PCL's defclass when DEFSTRUCT-P is true,
+There is an awful kludge in PCL's defclass when DEFSTRUCT-P is true,
 which EVALS a the defclass form at macroexpansion time in order to
 properly determine the class's most-direct superclass and also slot
 names.
 
 
-Functions that need to be moved over
-sb-pcl::*SUBTYPEP  -- defs.lisp 
-SPECIALIZER-APPLICABLE-USING-TYPE-P
-
-----------
-
-ugly stuff from eval@ macro expansion time
-CLASS-DIRECT-SLOTS 
-MAKE-STRUCTURE-CLASS-DEFSTRUCT-FORM
-
-
-------------
-
-sb-pcl::CANONIZE-DEFCLASS-OPTIONS
-sb-pcl::CLASS-DIRECT-SLOTS
-sb-pcl::MAKE-STRUCTURE-CLASS-DEFSTRUCT-FORM
-
-*SUBTYPEP CANONIZE-DEFCLASS-OPTIONS CANONIZE-DEFCLASS-SLOTS CLASS-DIRECT-SLOTS MAKE-STRUCTURE-CLASS-DEFSTRUCT-FORM
-
-(SETF CLOS-SLOTS-REF)
- *SUBTYPEP
- CLASS-DIRECT-SLOTS
- CLOS-SLOTS-REF
- GET-SLOTS
- MAKE-STRUCTURE-CLASS-DEFSTRUCT-FORM
- SLOT-BOUNDP-NAME
- SLOT-READER-NAME
- SLOT-WRITER-NAME
-
 
 ------------
 Use this function to find common undefined functions:
+(in-package :cl-user)
 
 (defparameter *pcl-order*
   '(("declarations.lisp") ; processed even on the host for the sake of proclaiming thingsed used in macros
@@ -79,7 +51,7 @@ Use this function to find common undefined functions:
     ("precom1.lisp"           :not-host :warm)
     ("precom2.lisp"           :not-host :warm)))
 
-(in-package :cl-user)
+
 
 (defun pcl-file< (f1 f2)
   (let ((p1 (position f1 *pcl-order* :test #'equal :key #'car))
@@ -89,6 +61,11 @@ Use this function to find common undefined functions:
       ((and (not p1) p2) nil)
       ((and p1 (not p2)) nil)
       (t (< p1 p2)))))
+
+(defun load-some-stems (n)
+  (dotimes (i n)
+    (let ((stem (format nil "src/pcl/~A" (pathname-name (pathname (car (nth i *pcl-order*)))))))
+      (sb-cold::host-cload-stem stem nil))))
 
 
 (defun report-undefined-functions (source-file)

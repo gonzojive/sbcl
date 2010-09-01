@@ -41,14 +41,10 @@
 ;;; After the metabraid has been setup, and the protocol for defining
 ;;; classes has been defined, the real definition of LOAD-DEFCLASS is
 ;;; installed by the file std-class.lisp
-#-sb-xc-host
-(defmacro defclass (&environment env name direct-superclasses direct-slots &rest options)
-  (%defclass-expander env name direct-superclasses direct-slots options))
+(defmacro def!class (name direct-superclasses direct-slots &rest options)
+  `(sb-xc:defclass ,name ,direct-superclasses ,direct-slots ,@options))
 
-(defmacro def!class (&environment env name direct-superclasses direct-slots &rest options)
-  (%defclass-expander env name direct-superclasses direct-slots options))
-
-(defun %defclass-expander (env name direct-superclasses direct-slots options)
+(defmacro sb-xc:defclass (&environment env name direct-superclasses direct-slots &rest options)
   #+sb-xc-host
   (declare (optimize (debug 3)))
   (let (*initfunctions-for-this-defclass*
@@ -267,7 +263,6 @@
     (nreverse canonized-specs)))
 
 
-#+sb-xc
 (defun check-slot-name-for-defclass (name class-name env)
   (flet ((slot-name-illegal (reason)
            (error 'simple-program-error
@@ -358,12 +353,16 @@
         (inform (slot-boundp-name slot) rtype)
         (inform (slot-writer-name slot) wtype)))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; This is the early definition of LOAD-DEFCLASS. It just collects up
 ;;; all the class definitions in a list. Later, in braid1.lisp, these
 ;;; are actually defined.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Each entry in *EARLY-CLASS-DEFINITIONS* is an EARLY-CLASS-DEFINITION.
 (defparameter *early-class-definitions* ())
+(defvar *early-class-slots* nil)
 
 (defun early-class-definition (class-name)
   (or (find class-name *early-class-definitions* :key #'ecd-class-name)
@@ -382,8 +381,6 @@
 (defun ecd-superclass-names  (ecd) (nth 4 ecd))
 (defun ecd-canonical-slots   (ecd) (nth 5 ecd))
 (defun ecd-other-initargs    (ecd) (nth 6 ecd))
-
-(defvar *early-class-slots* nil)
 
 (defun canonical-slot-name (canonical-slot)
   (getf canonical-slot :name))
@@ -525,6 +522,9 @@ CLASS-NAME's slot's vector"
 (defun early-class-direct-subclasses (class)
   (!bootstrap-get-slot 'class class 'direct-subclasses))
 
+
+;;; FIXME: define with a macro for defining early versions of
+;;; functions that are later replaced
 (declaim (notinline load-defclass))
 (defun load-defclass (name metaclass supers canonical-slots canonical-options
                       readers writers slot-names source-location safe-p)

@@ -1,3 +1,4 @@
+
 ;;;; This software is part of the SBCL system. See the README file for
 ;;;; more information.
 
@@ -48,7 +49,9 @@
   ;; This is null layer right now, but once FDEFINITION stops bypasssing
   ;; fwrappers/encapsulations we can do that here.
   #+sb-xc-host
-  (cdr (assoc spec *!xc-gdefinitions* :key 'equal))
+  (progn
+    (error "not supported")
+    (cdr (assoc spec *!xc-gdefinitions* :key 'equal)))
   #+sb-xc
   (fdefinition spec))
 
@@ -58,11 +61,13 @@
   ;; that here.
   (sb!c::note-name-defined spec :function) ; FIXME: do we need this? Why?
   #+sb-xc-host
-  (locally
-      (declare (type xc-standard-funcallable-instance new-value))
-    (setf  *!xc-gdefinitions*
-           (cons (cons spec new-value)
-                 (remove spec *!xc-gdefinitions* :key #'car :test #'equal))))
+  (progn
+    (error "not supported")
+    (locally
+        (declare (type xc-standard-funcallable-instance new-value))
+      (setf  *!xc-gdefinitions*
+             (cons (cons spec new-value)
+                   (remove spec *!xc-gdefinitions* :key #'car :test #'equal)))))
   #+sb-xc
   (setf (fdefinition spec) new-value))
 
@@ -113,7 +118,6 @@
          (error "~S is neither a type nor a specializer." specl))))
 
 (defun type-class (type)
-  (declare (special *the-class-t*))
   (setq type (type-from-specializer type))
   (if (atom type)
       (if (eq type t)
@@ -221,27 +225,6 @@
         nil)))
 
 ;;;; built-in classes
-
-
-
-;; (defvar *reversed-delayed-prototype-initforms* nil)
-
-;; (defun !pcl-late-cold-init-prototypes ()
-;;   (dolist (spec (nreverse *reversed-delayed-prototype-initforms*))
-;;     (destructuring-bind (metaclass-name class initform)
-;;           spec
-;;       (/show0 "Processing late prototype initform")
-;;       ;(/show0 (class-name class))
-;;       (!bootstrap-set-slot metaclass-name class 'prototype (eval initform)))))
-
-;; (defun pcl-late-cold-init-prototypes ()
-;;   (dolist (spec (nreverse *reversed-delayed-prototype-initforms*))
-;;     (destructuring-bind (metaclass-name class initform)
-;;           spec
-;;       (/show0 "Processing late prototype initform")
-;;       ;(/show0 (class-name class))
-;;       (setf (slot-value class 'prototype)
-;;            (eval initform)))))
 
 ;;; Grovel over SB!KERNEL::*BUILT-IN-CLASSES* in order to set
 ;;; SB!PCL:*BUILT-IN-CLASSES*.  The result is a list where each member

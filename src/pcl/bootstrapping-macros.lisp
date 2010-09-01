@@ -55,6 +55,15 @@
 ;;;; 1.  Define safe versions of functions that would otherwise recur
 ;;;; infinitely
 
+;;;; We also have newfounded workarounds now that we are loading PCL,
+;;;; at least partially, into a host lisp.
+;;;;
+;;;; 1.  Instead of using cl:find-class (and other cl package
+;;;; exports), we use sb-xc:find-class to avoid collisions.  These
+;;;; functions and macros are defined, perhaps with documented
+;;;; quirkiness, to function on both the host and target.
+
+
 (defvar *!early-function-specs*
   ;; each member is a list of (function-name early-function-name late-function-name)
   '((make-a-method  early-make-a-method real-make-a-method)

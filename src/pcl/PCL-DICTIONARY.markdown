@@ -23,4 +23,6 @@ to be replaced
 
 cpl: Class Precedence List
 
+ecd: Early Class Definition
+
 emf: Effective Method Function
