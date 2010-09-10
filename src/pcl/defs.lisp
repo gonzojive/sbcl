@@ -46,6 +46,9 @@
 ;#!-sb-fluid (declaim (inline gdefinition))
 #+sb-xc (declaim (inline gdefinition))
 (defun gdefinition (spec)
+  #!+sb-doc
+  "Fetches the funcallable instance being used as the implementation
+of the generic function named SPEC."
   ;; This is null layer right now, but once FDEFINITION stops bypasssing
   ;; fwrappers/encapsulations we can do that here.
   #+sb-xc-host
@@ -56,6 +59,9 @@
   (fdefinition spec))
 
 (defun (setf gdefinition) (new-value spec)
+  #!+sb-doc
+  "Sets the funcallable instance being used as the implementation of
+the generic function named SPEC."
   ;; This is almost a null layer right now, but once (SETF
   ;; FDEFINITION) stops bypasssing fwrappers/encapsulations we can do
   ;; that here.

@@ -21,7 +21,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 ;;; methods
 ;;;
@@ -241,8 +241,8 @@ Note: During bootstrapping, this function is allowed to return NIL."
             (class-prototype (or (generic-function-method-class gf?)
                                  (sb-xc:find-class 'standard-method)))))))
 
-(defun real-add-named-method (generic-function-name qualifiers
-                              specializers lambda-list &rest other-initargs)
+(define-early-function-implementation add-named-method :late
+    (generic-function-name qualifiers specializers lambda-list &rest other-initargs)
   (unless (and (fboundp generic-function-name)
                (typep (fdefinition generic-function-name) 'generic-function))
     (warn 'implicit-generic-function-warning :name generic-function-name))

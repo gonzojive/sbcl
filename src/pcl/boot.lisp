@@ -76,15 +76,8 @@ bootstrapping.
 ;;; early definition. Do this in a way that makes sure that if we
 ;;; redefine one of the early definitions the redefinition will take
 ;;; effect. This makes development easier.
-#+sb-xc
-(dolist (fns *!early-function-specs*)
-  (let ((name (car fns))
-        (early-name (cadr fns)))
-    (setf (gdefinition name)
-            (set-fun-name
-             (lambda (&rest args)
-               (apply (fdefinition early-name) args))
-             name))))
+
+(!set-fdefinitions-of-early-functions :early)
 
 ;;; *!GENERIC-FUNCTION-FIXUPS* is used by !FIX-EARLY-GENERIC-FUNCTIONS
 ;;; to convert the few functions in the bootstrap which are supposed
@@ -142,7 +135,6 @@ bootstrapping.
      ((generic-function combin applicable-methods)
       (generic-function standard-method-combination t)
       standard-compute-effective-method))))
-
 
 ;;;; early generic function support
 
@@ -236,10 +228,7 @@ generics and methods."
         (aver (not (early-gf-p gf)))))
 
     ;; Modify the simple early-function-specs to their real version.
-    ;; Why do we do this now in particular?
-    (dolist (fn *!early-function-specs*)
-      (/show fn)
-      (setf (gdefinition (car fn)) (fdefinition (caddr fn))))
+    (!set-fdefinitions-of-early-functions :late)
 
     ;; Run all the fixupes
     (dolist (fixup *!generic-function-fixups*)

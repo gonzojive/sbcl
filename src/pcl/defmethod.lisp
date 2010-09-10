@@ -23,6 +23,10 @@
 
 (in-package "SB!PCL")
 
+;;; Definitions of early functions
+(define-early-function (add-named-method early-add-named-method real-add-named-method))
+(define-early-function (make-a-method early-make-a-method real-make-a-method))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; The actual defmethod macro
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -406,30 +410,7 @@ method object."
            method-lambda))
   (make-method-initargs-form-internal method-lambda initargs env))
 
-(unless (fboundp 'make-method-initargs-form)
-  (setf (gdefinition 'make-method-initargs-form)
-        (symbol-function 'real-make-method-initargs-form)))
 
-;;; When bootstrapping PCL MAKE-METHOD-LAMBDA starts out as a regular
-;;; function: REAL-MAKE-METHOD-LAMBDA set to the fdefinition of
-;;; MAKE-METHOD-LAMBDA. Once generic functions are born, the
-;;; REAL-MAKE-METHOD lambda is used as the body of the default method.
-;;; MAKE-METHOD-LAMBDA-INTERNAL is split out into a separate function
-;;; so that changing it in a live image is easy, and changes actually
-;;; take effect.
-(defun real-make-method-lambda (proto-gf proto-method method-lambda env)
-   #!+sb-doc
-  "Returns the following values:
-
-    (method-function-lambda initargs)
-
-METHOD-FUNCTION-LAMBDA is a method-lambda form (which is a list that
-looks like (LAMBDA ...)).
-
-INITARGS is a list of some initargs for the method object to be
-initialized in conjunection with the method function
-METHOD-FUNCTION-LAMBDA."
-  (make-method-lambda-internal proto-gf proto-method method-lambda env))
 
 (unless (fboundp 'make-method-lambda)
   (setf (gdefinition 'make-method-lambda)
@@ -1731,9 +1712,10 @@ information available for the given function to supplement."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Early methods
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun early-make-a-method (class qualifiers arglist specializers initargs doc
-                            &key slot-name object-class method-class-function
-                            definition-source)
+(define-early-function-implementation make-a-method :early
+    (class qualifiers arglist specializers initargs doc
+           &key slot-name object-class method-class-function
+           definition-source)
   #!+sb-doc
   "Makes a method early on in the bootstrapping process, and returns
   information about that method.
@@ -1804,10 +1786,10 @@ RESULT after RESULT is computed and before returning RESULT.
       (initialize-method-function initargs result)
       result)))
 
-(defun real-make-a-method
-       (class qualifiers lambda-list specializers initargs doc
-        &rest args &key slot-name object-class method-class-function
-        definition-source)
+(define-early-function-implementation make-a-method :late
+    (class qualifiers lambda-list specializers initargs doc
+           &rest args &key slot-name object-class method-class-function
+           definition-source)
   #!+sb-doc
   "Makes a method of class CLASS with qualifiers QUALIFIERS,
 ordinary lambda list LAMBDA-LIST, parsed specializers SPECIALIZERS,
@@ -1924,12 +1906,11 @@ EARLY-METHOD."
   (aver (early-method-p early-method))
   (setf (fifth (early-method-real-make-a-method-args early-method)) new-value))
 
-(define-early-function (add-named-method early-add-named-method real-add-named-method)
-  (:early
-   (generic-function-name qualifiers
-                          specializers arglist &rest initargs
-                          &key documentation definition-source
-                          &allow-other-keys)
+(define-early-function-implementation add-named-method :early
+    (generic-function-name qualifiers specializers arglist
+                           &rest initargs
+                           &key documentation definition-source
+                           &allow-other-keys)
    (let* ( ;; we don't need to deal with the :generic-function-class
           ;; argument here because the default,
           ;; STANDARD-GENERIC-FUNCTION, is right for all early generic

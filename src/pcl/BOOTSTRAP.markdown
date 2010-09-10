@@ -20,9 +20,9 @@ this happens while still in the NIL boot stage.
 `boot.lisp` defines a number of functions by DEFUN which are really
 supposed to be generic functions.  These functions are later "fixed
 up" during the transition from braid -> complete, but boot.lisp mostly
-sets up `defgeneric` and and `defmethod` so that they will expand
+sets up `defgeneric` and `defmethod` so that they will expand
 properly.  Once these macros have been set up, the boot state is
-chaned to 'early, which essentially means that PCL has defined all of
+changed to 'early, which essentially means that PCL has defined all of
 the early classes along with the macros for defining early
 generics/methods.  At this point everything is still a non-CLOS
 object: we are using early structure representations of the objects
@@ -31,19 +31,20 @@ while in the 'early state.
 `braid.lisp` takes the early representations of classes, slots,
 accessors, and class predicates and creates the actual metaobjects out
 of them.  It leaves the list of generic function instances alone,
-however, and transitions to the 'braid state.  While in 'braid,
-classes are , generic functions are not and methods are still in their
+however, and transitions to the 'braid state.  At the commencement of
+'braid, class objects have just become initialized, generic functions
+are funcallable but still early, and methods are still in their
 early-structure state.  Hence, we are "braiding" between first-class
-metaobjects, partially initialized generic functions, and early
-methods.  What happens in between 'braid and 'complete is mostly the
-definition of many generic functions, and the "real" implementations
-of methods that had an early version.
+metaobjects (classes, slots), partially initialized generic functions,
+and early methods.  What happens in between 'braid and 'complete is
+mostly the definition of many generic functions, and the "real"
+implementations of methods that had an early version.
 
 A few other files load while in 'braid.  `generic-functions.lisp`
 defines hundreds of generic functions used in PCL and CLOS, while
 `slots.lisp, init.lisp, std-class.lisp, fsc.lisp, methods.lisp` define
 a number of methods.  All of these methods are early defmethod, which
-have restrictions, like the metaclass must be stadard-generic-class
+have restrictions, like the metaclass must be standard-generic-class
 but more than a single method is allowed per generic function.
 However, all the generics are funcallable, and defmethod installs the
 method to be called when the generic is invoked, so everything is
@@ -61,7 +62,7 @@ The bootstrapping process could probably take place in the host lisp,
 which could then dump everything to the cold image, which could take
 further steps to set up CLOS at cold boot.
 
-The stategy for achieving this is so:
+The strategy for achieving this is so:
 
 It's probably least confusing to rely on PCL to establish actual
 usable objects, including funcallable generic functions, rather than
@@ -88,7 +89,7 @@ because we must compile code both for the host machine to properly
 bootstrap things and then for the target to have the "real"
 implementations of everything.
 
-## Roadmap for implementing cold bootstrapping
+## Road map for implementing cold bootstrapping
 
 1. Define macros named according to the clever things PCL does for
 early/late definition of functions
@@ -114,7 +115,7 @@ early/late definition of functions
 
 ## declarations.lisp
 
-Specials proclaimations for PCL.  Not all specials are declared here but a lot of them are
+Specials proclamations for PCL.  Not all specials are declared here but a lot of them are
 
 
 ## early-low.lisp
@@ -152,7 +153,7 @@ Defines the following structures:
 *  `%method-function` (`!defstruct-with-alternate-metaclass`)
 
 Also contains a bunch of support functions and macros for working with
-funcallable instances (FSC stands for funcallabe standard class) and
+funcallable instances (FSC stands for funcallable standard class) and
 standard-instances.
      
 Scattered, poorly documented functions/macros:

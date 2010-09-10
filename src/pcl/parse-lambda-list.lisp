@@ -71,7 +71,7 @@ given list.  KEYWORD-PARAMETERS are the raw keyword arguments.
               (key       (push (parse-key-arg x) keywords)
                          (push x keyword-parameters))
               (rest      (incf nrest)))))
-      (when (and restp (zerop nrest))
+     (when (and restp (zerop nrest))
         (error "Error in lambda-list:~%~
                 After &REST, a DEFGENERIC lambda-list ~
                 must be followed by at least one variable."))

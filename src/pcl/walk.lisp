@@ -49,7 +49,7 @@
 ;;;
 ;;; This code just hacks 'macroexpansion environments'. That is, it is
 ;;; only concerned with the function binding of symbols in the
-;;; environment. The walker needs to be able to tell if the symbol
+ ;;; environment. The walker needs to be able to tell if the symbol
 ;;; names a lexical macro or function, and it needs to be able to
 ;;; build environments which contain lexical macro or function
 ;;; bindings. It must be able, when walking a MACROLET, FLET or LABELS

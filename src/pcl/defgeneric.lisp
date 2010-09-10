@@ -195,6 +195,8 @@ names.")
       (aver (not morep)))))
 
 (defun generic-function-name-p (name)
+  #!+sb-doc
+  "Returns T if NAME designates a valid generic function."
   (and (legal-fun-name-p name)
        (fboundp name)
        (if (eq **boot-state** 'complete)
@@ -446,7 +448,7 @@ names.")
   ;; the fixup phase no new object is created.  Where does this
   ;; actually matter, and what happens if we take away this features?
   ;; Dont' know.  -- RED 08/31/2010
-  #+sb-doc
+  #!+sb-doc
   "Creats an early generic function named SPEC "
   (let ((fin (allocate-standard-funcallable-instance
               *sgf-wrapper* *sgf-slots-init*)))
