@@ -87,25 +87,6 @@ bootstrapping.
 
 (defparameter *!xc-generic-functions* nil)
 
-#+sb-xc-host
-(defun xc-ensure-generic-function (fun-name
-                                   &rest all-keys
-                                   &key environment source-location
-                                   &allow-other-keys)
-  (declare (ignore environment source-location))
-  (declare (optimize (debug 3)))
-  (let ((existing (cdr (assoc fun-name *!xc-generic-functions* :test #'equal))))
-    (cond ((and existing
-                (eq **boot-state** 'complete)
-                (null (generic-function-p existing)))
-           (generic-clobbers-function fun-name)
-           (fmakunbound fun-name)
-           (apply 'xc-ensure-generic-function fun-name all-keys))
-          (t
-           (apply #'ensure-generic-function-using-class
-                  existing fun-name all-keys)))))
-
-
 (defun !fix-early-generic-functions ()
   #!+sb-doc
   "Run at the end of the braid stage to boot PCL into the fully
@@ -143,7 +124,7 @@ generics and methods."
       (setq *!early-generic-functions*
             (cons spec
                   (delete spec *!early-generic-functions* :test #'equal))))
-    
+
     ;; Modify each generic function by making a real method for
     ;; each of its early methods, setting the method-class to the now
     ;; non-early class *the-class-standard-class* (and same for method combo)

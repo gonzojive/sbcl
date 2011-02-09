@@ -234,7 +234,7 @@ forms that setf the wrapper, class, and (find-class class)."
                                   (t
                                    (boot-make-wrapper (length slots) name))))
                    (proto nil))
-              (when (eq name t) 
+              (when (eq name t)
                 (setq *the-wrapper-of-t* wrapper))
               (let ((class-sym (make-class-symbol name)))
                 (set class-sym  class))
@@ -400,7 +400,7 @@ with !BOOTSTRAP-MAKE-SLOT-DEFINITIONS"
                (!bootstrap-set-slot metaclass-name super 'direct-subclasses
                                     (cons class subclasses))))))
 
-    
+
     (case metaclass-name
       (structure-class
          (let ((constructor-sym '|STRUCTURE-OBJECT class constructor|))
@@ -515,7 +515,7 @@ instance to use for this slot definition."
   #!+sb-doc
   "!bootstrap-ensure-generic-function works on early-generic functions
 before they have been converted into first-order generics."
-  (apply 'xc-ensure-generic-function fun-name all-keys))
+  (apply 'sb-xc:ensure-generic-function fun-name all-keys))
 
 (defun !bootstrap-add-method (generic-function method)
   #+sb-xc-host

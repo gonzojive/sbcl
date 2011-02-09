@@ -798,7 +798,7 @@
   (flet ((fix (gfspec name r/w doc)
            (let ((gf (cond ((eq add/remove 'add)
                             (or (find-generic-function gfspec nil)
-                                (ensure-generic-function
+                                (ensure-generic-function ;; TODO: sb-xc:ensure-generic-function when converted to cold-init
                                  gfspec :lambda-list (case r/w
                                                        (r '(object))
                                                        (w '(new-value object))))))

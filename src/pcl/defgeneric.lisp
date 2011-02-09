@@ -30,7 +30,7 @@ ENSURE-GENERIC-FUNCTION-USING-CLASS keeps track of early generic
 functions as they are defined and conses up this list of their
 names.")
 
-;; The main defgeneric macro.  
+;; The main defgeneric macro.
 (sb-xc:defmacro defgeneric (fun-name lambda-list &body options)
   (declare (type list lambda-list))
   (unless (legal-fun-name-p fun-name)
@@ -144,7 +144,7 @@ names.")
         (loop for method in (generic-function-initial-methods fun)
               do (remove-method fun method))
         (setf (generic-function-initial-methods fun) '()))))
-  (apply #'ensure-generic-function
+  (apply #'sb-xc:ensure-generic-function
          fun-name
          :lambda-list lambda-list
          :definition-source source-location
@@ -207,10 +207,10 @@ names.")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Ensure-generic-function and friends
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun ensure-generic-function (fun-name
-                                &rest all-keys
-                                &key environment source-location
-                                &allow-other-keys)
+(defun sb-xc:ensure-generic-function (fun-name
+                                      &rest all-keys
+                                      &key environment source-location
+                                      &allow-other-keys)
   (declare (ignore environment source-location))
   (let ((existing (and (fboundp fun-name)
                        (gdefinition fun-name))))
@@ -219,7 +219,7 @@ names.")
                 (null (generic-function-p existing)))
            (generic-clobbers-function fun-name)
            (fmakunbound fun-name)
-           (apply #'ensure-generic-function fun-name all-keys))
+           (apply #'sb-xc:ensure-generic-function fun-name all-keys))
           (t
            (apply #'ensure-generic-function-using-class
                   existing fun-name all-keys)))))
@@ -588,7 +588,7 @@ names.")
     ;; Use the existing lambda-list, if any. It is reasonable to do eg.
     ;;
     ;;   (if (fboundp name)
-    ;;       (ensure-generic-function name)
+    ;;       (sb-xc:ensure-generic-function name)
     ;;       (ensure-generic-function name :lambda-list '(foo)))
     ;;
     ;; in which case we end up here with no lambda-list in the first leg.

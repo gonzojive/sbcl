@@ -249,9 +249,10 @@ Note: During bootstrapping, this function is allowed to return NIL."
   (let* ((existing-gf (find-generic-function generic-function-name nil))
          (generic-function
           (if existing-gf
-              (ensure-generic-function
+              (ensure-generic-function ;; TODO: sb-xc:ensure-generic-function
                generic-function-name
                :generic-function-class (class-of existing-gf))
+              ;; TODO: sb-xc:ensure-generic-function -- left as cl:ensure-generic-function because this is during warm right now
               (ensure-generic-function generic-function-name)))
          (proto (method-prototype-for-gf generic-function-name)))
     ;; FIXME: Destructive modification of &REST list.

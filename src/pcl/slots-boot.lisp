@@ -44,7 +44,7 @@
              (values '(object) reader-specializers 'global-boundp-method
                      (make-std-boundp-method-function 'slot-object slot-name)
                      "automatically-generated boundp method")))
-        (let ((gf (ensure-generic-function fun-name :lambda-list lambda-list)))
+        (let ((gf (sb-xc:ensure-generic-function fun-name :lambda-list lambda-list)))
           (add-method gf (make-a-method method-class
                                         () lambda-list specializers
                                         initargs doc :slot-name slot-name)))))

@@ -104,6 +104,15 @@ early/late definition of functions
 
 6. Write genesis/!cold-init code for PCL, and wade into cold init land
 
+## How to develop and debug with minimal pain
+
+A fair amount of the development, at least at first, is making things
+happen on the host lisp.  This means we can fire up SLIME and try to
+load as much of PCL as possible with `C-c C-l`, the REPL, and friends.
+To get to that point, you need to load up sb! code into the host lisp.
+To accomplish this, I usually just run make.sh until some terrible
+error happens, quit out, and then load `make-host-2.lisp` into the
+host lisp.
 
 ## What files are relevant to the bootstrap?
 

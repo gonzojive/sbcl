@@ -400,7 +400,7 @@
   #!+sb-doc
   "Returns the following values:
 
-   (early-slots early-cpl early-default-initargs early-direct-subclass-names) 
+   (early-slots early-cpl early-default-initargs early-direct-subclass-names)
 
    Where EARLY-SLOTS is a list of all the class's slots, including
 those inherited from superclasses and the same for default-initargs.

@@ -67,7 +67,7 @@
         (%defmethod-expander ,name ,qualifiers ,lambda-list ,body)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Parsing 
+;;;;; Parsing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; PARSE-DEFMETHOD is used by DEFMETHOD to parse the &REST argument
@@ -77,7 +77,7 @@
   #!+sb-doc
   "Parses a cdr of a whole defmethod form and returns the following
 values:
- 
+
     (name qualifiers specialized-lambda-list forms-after-lambda-list)"
   (declare (list cdr-of-form))
   (let ((name (pop cdr-of-form))
@@ -103,7 +103,7 @@ defmethod form."
   #!+sb-doc
   "Parses a cdr of a whole defmethod form and returns the following
 values:
- 
+
     (name qualifiers specialized-lambda-list forms-after-lambda-list)"
   (declare (list specializers))
   (flet ((unparse (spec)
@@ -196,7 +196,7 @@ ENV is the environment in which the defmethod is being expanded.
                             initargs env))
             (specializers-form (make-method-specializers-form
                                 proto-gf proto-method specializer-names env)))
-        
+
         ;; 4.  Pass the torch to MAKE-DEFMETHOD-FORM with what we have
         ;; computed so far.
         `(progn
@@ -409,7 +409,7 @@ method object."
     (error "The METHOD-LAMBDA argument to MAKE-METHOD-FUNCTION, ~S, ~
             is not a lambda form."
            method-lambda))
-  (make-method-initargs-form-internal method-lambda initargs env))    
+  (make-method-initargs-form-internal method-lambda initargs env))
 
 ;;; When bootstrapping PCL MAKE-METHOD-LAMBDA starts out as a regular
 ;;; function: REAL-MAKE-METHOD-LAMBDA set to the fdefinition of
@@ -1775,7 +1775,7 @@ RESULT after RESULT is computed and before returning RESULT.
                  ;; Note that this only comes into play when there is
                  ;; more than one early method on an early gf.
                  parsed
-                 
+
                  ;; A list to which REAL-MAKE-A-METHOD can be applied
                  ;; to make a real method corresponding to this early
                  ;; one.
@@ -1918,7 +1918,7 @@ EARLY-METHOD."
           ;; argument here because the default,
           ;; STANDARD-GENERIC-FUNCTION, is right for all early generic
           ;; functions.  (See REAL-ADD-NAMED-METHOD)
-          (gf (ensure-generic-function generic-function-name))
+          (gf (sb-xc:ensure-generic-function generic-function-name))
           (existing
            (dolist (m (early-gf-methods gf))
              (when (and (equal (early-method-specializers m) specializers)

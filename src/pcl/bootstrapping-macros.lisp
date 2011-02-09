@@ -86,7 +86,7 @@
   #!+sb-doc
   "Defines a function named NAME that is initially fbound to the
 function EARLY-NAME but when !FIX-EARLY-GENERIC-FUNCTIONS is run
-becomes fbound to REAL-NAME. 
+becomes fbound to REAL-NAME.
 
 OPTIONS is a list where each item's car is either :EARLY or :LATE, in
 which case it a DEFUN form is expanded with a name of either
@@ -141,7 +141,7 @@ specified, to the :EARLY or :LATE definition."
                              *!early-function-specs*
                              :key #'first)
               *!early-function-specs*)))
-      
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Early generic function -- implemented as defuns early on
@@ -237,7 +237,7 @@ GENERIC-SPEC ::= GENERIC-NAME
                | (GENERIC-NAME [DEFUN-NAME])
 
 Fixup time is when !FIX-EARLY-GENERIC-FUNCTIONS is run."
-  (let* ((generic-name (if (atom generic-spec) 
+  (let* ((generic-name (if (atom generic-spec)
                            generic-spec
                            (first generic-spec)))
          (defun-name (or (and (consp generic-spec) (second generic-spec))
@@ -252,8 +252,8 @@ Fixup time is when !FIX-EARLY-GENERIC-FUNCTIONS is run."
          ;(setf *!generic-function-fixups*
          ;      (cons (list ',generic-name (list ',lambda-list ',specializers ',defun-name))
          ;            (remove ',generic-name *!generic-function-fixups* :key #'car)))
-       
+
          (unless (fboundp ',generic-name)
            (setf (gdefinition ',generic-name)
                  (symbol-function ',defun-name)))))))
-  
+

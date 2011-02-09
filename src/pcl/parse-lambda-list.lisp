@@ -169,7 +169,7 @@ KEYWORD and returns everything in the list after it."
           ;; FIXED: Do we want to export this symbol? Or maybe use an
           ;; (ERROR 'SIMPLE-PROGRAM-ERROR) form?
           ;;   (sb-c::%odd-key-args-error)
-          (error 'simple-program-error 
+          (error 'simple-program-error
                  :format-control "List has odd number of keyword arguments: ~S"
                  :format-arguments (list list))
         when (eq key keyword)
