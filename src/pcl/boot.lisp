@@ -79,62 +79,7 @@ bootstrapping.
 
 (!set-fdefinitions-of-early-functions :early)
 
-;;; *!GENERIC-FUNCTION-FIXUPS* is used by !FIX-EARLY-GENERIC-FUNCTIONS
-;;; to convert the few functions in the bootstrap which are supposed
-;;; to be generic functions but can't be early on.
-;;;
-;;; each entry is a list of name and lambda-list, class names as
-;;; specializers, and method body function name.
-(defvar *!generic-function-fixups*
-  '((add-method
-     ((generic-function method)
-      (standard-generic-function method)
-      real-add-method))
-    (remove-method
-     ((generic-function method)
-      (standard-generic-function method)
-      real-remove-method))
-    (get-method
-     ((generic-function qualifiers specializers &optional (errorp t))
-      (standard-generic-function t t)
-      real-get-method))
-    (ensure-generic-function-using-class
-     ((generic-function fun-name
-                        &key generic-function-class environment
-                        &allow-other-keys)
-      (generic-function t)
-      real-ensure-gf-using-class--generic-function)
-     ((generic-function fun-name
-                        &key generic-function-class environment
-                        &allow-other-keys)
-      (null t)
-      real-ensure-gf-using-class--null))
-    (make-method-lambda
-     ((proto-generic-function proto-method lambda-expression environment)
-      (standard-generic-function standard-method t t)
-      real-make-method-lambda))
-    (make-method-specializers-form
-     ((proto-generic-function proto-method specializer-names environment)
-      (standard-generic-function standard-method t t)
-      real-make-method-specializers-form))
-    (parse-specializer-using-class
-     ((generic-function specializer)
-      (standard-generic-function t)
-      real-parse-specializer-using-class))
-    (unparse-specializer-using-class
-     ((generic-function specializer)
-      (standard-generic-function t)
-      real-unparse-specializer-using-class))
-    (make-method-initargs-form
-     ((proto-generic-function proto-method
-                              lambda-expression
-                              lambda-list environment)
-      (standard-generic-function standard-method t t t)
-      real-make-method-initargs-form))
-    (compute-effective-method
-     ((generic-function combin applicable-methods)
-      (generic-function standard-method-combination t)
-      standard-compute-effective-method))))
+
 
 ;;;; early generic function support
 

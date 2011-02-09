@@ -268,9 +268,9 @@ Note: During bootstrapping, this function is allowed to return NIL."
   ()
   (:default-initargs :references (list '(:ansi-cl :function find-method))))
 
-(defun real-get-method (generic-function qualifiers specializers
-                        &optional (errorp t)
-                        always-check-specializers)
+(define-early-generic get-method ((generic-function standard-generic-function) qualifiers specializers
+                                  &optional (errorp t)
+                                  always-check-specializers)
   (let ((lspec (length specializers))
         (methods (generic-function-methods generic-function)))
     (when (or methods always-check-specializers)
@@ -488,7 +488,7 @@ Note: During bootstrapping, this function is allowed to return NIL."
                     situations.~@:>"
    :format-arguments (list 'print-object)))
 
-(defun real-add-method (generic-function method &optional skip-dfun-update-p)
+(define-early-generic add-method ((generic-function standard-generic-function) (method method) &optional skip-dfun-update-p)
   (flet ((similar-lambda-lists-p (old-method new-lambda-list)
            (multiple-value-bind (a-nreq a-nopt a-keyp a-restp)
                (analyze-lambda-list (method-lambda-list old-method))
@@ -594,7 +594,7 @@ Note: During bootstrapping, this function is allowed to return NIL."
           (error c)))))
   generic-function)
 
-(defun real-remove-method (generic-function method)
+(define-early-generic remove-method ((generic-function standard-generic-function) (method method))
   (when (eq generic-function (method-generic-function method))
     (let ((lock (gf-lock generic-function)))
       ;; System lock because interrupts need to be disabled as well:

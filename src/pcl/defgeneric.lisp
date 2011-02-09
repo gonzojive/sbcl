@@ -620,13 +620,13 @@ names.")
           (info :function :where-from fun-name) :defined-method)
     fun-name))
 
-(defun real-ensure-gf-using-class--generic-function
-       (existing
-        fun-name
-        &rest all-keys
-        &key environment (lambda-list nil lambda-list-p)
-        (generic-function-class 'standard-generic-function)
-        &allow-other-keys)
+(define-early-generic (ensure-generic-function-using-class real-ensure-gf-using-class--generic-function)
+    ((existing generic-function)
+     fun-name
+     &rest all-keys
+     &key environment (lambda-list nil lambda-list-p)
+     (generic-function-class 'standard-generic-function)
+     &allow-other-keys)
   (real-ensure-gf-internal generic-function-class all-keys environment)
   ;; KLUDGE: the above macro does SETQ on GENERIC-FUNCTION-CLASS,
   ;; which is what makes the next line work
@@ -636,8 +636,8 @@ names.")
       (apply #'reinitialize-instance existing all-keys)
     (note-gf-signature fun-name lambda-list-p lambda-list)))
 
-(defun real-ensure-gf-using-class--null
-       (existing
+(define-early-generic (ensure-generic-function-using-class real-ensure-gf-using-class--null)
+       ((existing null)
         fun-name
         &rest all-keys
         &key environment (lambda-list nil lambda-list-p)

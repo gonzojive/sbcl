@@ -406,8 +406,8 @@
 (defun gf-requires-emf-keyword-checks (generic-function)
   (member '&key (gf-lambda-list generic-function)))
 
-(defun standard-compute-effective-method
-    (generic-function combin applicable-methods)
+(define-early-generic (compute-effective-method standard-compute-effective-method)
+    ((generic-function standard-generic-function) (combin standard-method-combination) applicable-methods)
   (collect ((before) (primary) (after) (around))
     (flet ((invalid (gf combin m) (invalid-qualifiers gf combin m)))
       (dolist (m applicable-methods)

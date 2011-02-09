@@ -206,6 +206,9 @@ specified, to the :EARLY or :LATE definition."
       standard-compute-effective-method))))
 
 (defun ensure-early-generic-fixup (generic-name specializers lambda-list defun-name)
+  #!+sb-doc
+  "Creates or replaces an generic function 'fixup'--a primary method
+implementation for a generic function."
   ;; verify that the fixup is known
   (let* ((specs (cdr (assoc generic-name *!explicit-generic-function-fixups*)))
          (match (find specializers specs :key #'second :test #'equal)))
@@ -221,7 +224,7 @@ specified, to the :EARLY or :LATE definition."
                                   :test #'equal)))
               (remove generic-name *!generic-function-fixups* :test #'equal :key #'car))))
 
-(defmacro define-early-generic (generic-name specialized-lambda-list &body body)
+(defmacro define-early-generic (generic-spec specialized-lambda-list &body body)
   #!+sb-doc
   "Defines an early generic function with name GENERIC-NAME by using
 defun to define a function with body BODY that does not specialize on
@@ -230,8 +233,15 @@ like the primary method of the generic function and specialize on its
 arguments according to the specializers in the
 SPECIALIZED-LAMBDA-LIST.
 
+GENERIC-SPEC ::= GENERIC-NAME
+               | (GENERIC-NAME [DEFUN-NAME])
+
 Fixup time is when !FIX-EARLY-GENERIC-FUNCTIONS is run."
-  (let ((defun-name (intern (format nil "REAL-~A" (symbol-name generic-name)))))
+  (let* ((generic-name (if (atom generic-spec) 
+                           generic-spec
+                           (first generic-spec)))
+         (defun-name (or (and (consp generic-spec) (second generic-spec))
+                         (intern (format nil "REAL-~A" (symbol-name generic-name))))))
     (multiple-value-bind (params lambda-list specializers)
         (parse-specialized-lambda-list specialized-lambda-list)
       (declare (ignore params))

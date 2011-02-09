@@ -395,8 +395,9 @@ names for each of the required arguments of the lambda list."
                  ,@real-body)
               unspecialized-lambda-list specializer-names))))
 
-(defun real-make-method-initargs-form (proto-gf proto-method
-                                       method-lambda initargs env)
+
+(define-early-generic make-method-initargs-form
+    ((proto-gf standard-generic-function) (proto-method standard-method) method-lambda initargs env)
    #!+sb-doc
   "Given a method-lambda form METHOD-LAMBDA and a an initial plist of
 initargs INITARGS, returns a form that evaluates in the original
@@ -408,13 +409,28 @@ method object."
     (error "The METHOD-LAMBDA argument to MAKE-METHOD-FUNCTION, ~S, ~
             is not a lambda form."
            method-lambda))
-  (make-method-initargs-form-internal method-lambda initargs env))
+  (make-method-initargs-form-internal method-lambda initargs env))    
 
+;;; When bootstrapping PCL MAKE-METHOD-LAMBDA starts out as a regular
+;;; function: REAL-MAKE-METHOD-LAMBDA set to the fdefinition of
+;;; MAKE-METHOD-LAMBDA. Once generic functions are born, the
+;;; REAL-MAKE-METHOD lambda is used as the body of the default method.
+;;; MAKE-METHOD-LAMBDA-INTERNAL is split out into a separate function
+;;; so that changing it in a live image is easy, and changes actually
+;;; take effect.
+(define-early-generic make-method-lambda ((proto-gf standard-generic-function) (proto-method standard-method) method-lambda env)
+   #!+sb-doc
+  "Returns the following values:
 
+    (method-function-lambda initargs)
 
-(unless (fboundp 'make-method-lambda)
-  (setf (gdefinition 'make-method-lambda)
-        (symbol-function 'real-make-method-lambda)))
+METHOD-FUNCTION-LAMBDA is a method-lambda form (which is a list that
+looks like (LAMBDA ...)).
+
+INITARGS is a list of some initargs for the method object to be
+initialized in conjunection with the method function
+METHOD-FUNCTION-LAMBDA."
+  (make-method-lambda-internal proto-gf proto-method method-lambda env))
 
 (defun make-method-lambda-internal (proto-gf proto-method method-lambda env)
    #!+sb-doc
@@ -576,8 +592,8 @@ method object."
 ;;;;; Specializers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun real-make-method-specializers-form
-    (proto-gf proto-method specializer-names env)
+(define-early-generic make-method-specializers-form
+    ((proto-gf standard-generic-function) (proto-method standard-method) specializer-names env)
   #!+sb-doc
   "This function is called with (maybe uninitialized, as with the
 analogous arguments to mop:make-method-lambda) generic-function and
@@ -605,12 +621,7 @@ specializer objects in the lexical environment of the defmethod form."
                                        '(:ansi-cl :glossary "parameter specializer name")))))))
     `(list ,@(mapcar #'parse specializer-names))))
 
-(unless (fboundp 'make-method-specializers-form)
-  (setf (gdefinition 'make-method-specializers-form)
-        (symbol-function 'real-make-method-specializers-form)))
-
-
-(defun real-parse-specializer-using-class (generic-function specializer)
+(define-early-generic parse-specializer-using-class ((generic-function standard-generic-function) specializer)
   #!+sb-doc
   "This generic function returns an instance of mop:specializer,
 representing the specializer named by specializer-name in the context
@@ -621,11 +632,7 @@ of generic-function."
         (error "~@<~S cannot be parsed as a specializer for ~S.~@:>"
                specializer generic-function))))
 
-(unless (fboundp 'parse-specializer-using-class)
-  (setf (gdefinition 'parse-specializer-using-class)
-        (symbol-function 'real-parse-specializer-using-class)))
-
-(defun real-unparse-specializer-using-class (generic-function specializer)
+(define-early-generic unparse-specializer-using-class ((generic-function standard-generic-function) specializer)
   #!+sb-doc
   "This generic function returns the name of SPECIALIZER for generic
 functions with class the same as generic-function."
@@ -650,10 +657,6 @@ functions with class the same as generic-function."
         (error () specializer))
       (error "~@<~S is not a legal specializer for ~S.~@:>"
              specializer generic-function)))
-
-(unless (fboundp 'unparse-specializer-using-class)
-  (setf (gdefinition 'unparse-specializer-using-class)
-        (symbol-function 'real-unparse-specializer-using-class)))
 
 ;;; a helper function for creating Python-friendly type declarations
 ;;; in DEFMETHOD forms.

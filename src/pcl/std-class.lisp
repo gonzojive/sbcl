@@ -21,7 +21,7 @@
 ;;;; warranty about the software, its performance or its conformity to any
 ;;;; specification.
 
-(in-package "SB-PCL")
+(in-package "SB!PCL")
 
 (defmethod slot-accessor-function ((slotd effective-slot-definition) type)
   (ecase type
@@ -200,18 +200,18 @@
 ;;; This needs to be used recursively, in case a non-trivial user
 ;;; defined ADD/REMOVE-DIRECT-METHOD method ends up calling another
 ;;; function using the same lock.
-(defvar *specializer-lock* (sb-thread::make-spinlock :name "Specializer lock"))
+(defvar *specializer-lock* (sb!thread::make-spinlock :name "Specializer lock"))
 
 (defmethod add-direct-method :around ((specializer specializer) method)
   ;; All the actions done under this lock are done in an order
   ;; that is safe to unwind at any point.
-  (sb-thread::with-recursive-system-spinlock (*specializer-lock*)
+  (sb!thread::with-recursive-system-spinlock (*specializer-lock*)
     (call-next-method)))
 
 (defmethod remove-direct-method :around ((specializer specializer) method)
   ;; All the actions done under this lock are done in an order
   ;; that is safe to unwind at any point.
-  (sb-thread::with-recursive-system-spinlock (*specializer-lock*)
+  (sb!thread::with-recursive-system-spinlock (*specializer-lock*)
     (call-next-method)))
 
 (defmethod add-direct-method ((specializer class) (method method))
@@ -242,7 +242,7 @@
     ;; we behave as if we got just first or just after -- it's just
     ;; for update that we need to lock.
     (or (cdr cell)
-        (sb-thread::with-spinlock (*specializer-lock*)
+        (sb!thread::with-spinlock (*specializer-lock*)
           (setf (cdr cell)
                 (let (collect)
                   (dolist (m (car cell))
@@ -301,7 +301,7 @@
          (entry (gethash object (specializer-method-table specializer))))
     (when entry
       (or (cdr entry)
-          (sb-thread::with-spinlock (*specializer-lock*)
+          (sb!thread::with-spinlock (*specializer-lock*)
             (setf (cdr entry)
                   (let (collect)
                     (dolist (m (car entry))
@@ -555,9 +555,9 @@
         (dolist (reader (condition-slot-readers slot))
           ;; FIXME: see comment in SHARED-INITIALIZE :AFTER
           ;; (CONDITION-CLASS T), below.  -- CSR, 2005-11-18
-          (sb-kernel::install-condition-slot-reader reader name slot-name))
+          (sb!kernel::install-condition-slot-reader reader name slot-name))
         (dolist (writer (condition-slot-writers slot))
-          (sb-kernel::install-condition-slot-writer writer name slot-name))))))
+          (sb!kernel::install-condition-slot-writer writer name slot-name))))))
 
 (defmethod shared-initialize :after ((class condition-class) slot-names
                                      &key direct-slots direct-superclasses)
@@ -1318,7 +1318,7 @@
 ;;;
 ;;; This leaves the case where LAYOUT-INVALID returns T, which happens
 ;;; when REGISTER-LAYOUT has invalidated a superclass of CLASS (which
-;;; invalidated all the subclasses in SB-KERNEL land).  Again, here we
+;;; invalidated all the subclasses in SB!KERNEL land).  Again, here we
 ;;; must flush the caches and allow UPDATE-SLOTS to decide whether to
 ;;; obsolete the wrapper.
 ;;;
