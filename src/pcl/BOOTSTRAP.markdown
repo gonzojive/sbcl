@@ -64,12 +64,6 @@ further steps to set up CLOS at cold boot.
 
 The strategy for achieving this is so:
 
-It's probably least confusing to rely on PCL to establish actual
-usable objects, including funcallable generic functions, rather than
-doing things like compiling a generic function using the host's CLOS
-and the target CLOS simultaneously.  Maybe.  It might make more sense
-later on, but for now let's make that assumption.
-
 Assuming we were able to get PCL completely loaded (into boot state
 'complete) on the host, we would have a full class hierarchy and many
 instances of those classes instantiated--in particular standard
@@ -91,6 +85,11 @@ implementations of everything.
 
 ## Road map for implementing cold bootstrapping
 
+Please see the "Cross-compiling PCL" thread from the SBCL mailing list
+on 8/28/2010.
+
+Here is a slightly unjustified initial stab at a roadmap:
+
 1. Define macros named according to the clever things PCL does for
 early/late definition of functions
 
@@ -104,6 +103,35 @@ early/late definition of functions
 
 6. Write genesis/!cold-init code for PCL, and wade into cold init land
 
+Here is the more thoughtful rumination on what ought to be done:
+
+The goal is to perform all the bootstrapping that PCL initially did
+during warm init during cold init, dumping the class hierarchy during
+genesis and cross-compiling all methods/generic functions.
+
+In line with SBCL's ANSI-host attitude, we can assume a host with CLOS
+but not with the full MOP.  So things like DEFCLASS are okay for the
+cross-compiler, but support for ENSURE-CLASS and many other MOP
+features would require making PCL work on the host lisp.  Also to this
+end, we cannot define classes and the like that the host lisp already
+defines, nor would we want to.  But this means that the cross-compiler
+should not be doing any introspection of its own type hierarchy,
+generic functions, methods, slots, etc. on the way to cross-compiling.
+This assumption may need to be checked as we port PCL, which had no
+notion of cross-compiling before this revision.
+
+Code-wise, remember that the `:sb-xc-host` feature is on `*features*`
+while the host is building the cross-compiler, but not when the
+cross-compiler is compiling code for the target.  (for the latter
+situation, `:sb-xc` is on `*features*`.  Since we don't care to define
+many classes when they already exist on the host or wouldn't be
+necessary, there are many `defclass`es in PCL that are only relevant
+to the target.  These are classes like `standard-class`, which have
+information that should be dumped during genesis.  Classes that
+actually serve a purpose in the compiler, like a hypothetical
+`control-flow-graph` class, should use `defclass` so that the class
+exists in the cross-compiler, too.
+
 ## How to develop and debug with minimal pain
 
 A fair amount of the development, at least at first, is making things
@@ -113,6 +141,14 @@ To get to that point, you need to load up sb! code into the host lisp.
 To accomplish this, I usually just run make.sh until some terrible
 error happens, quit out, and then load `make-host-2.lisp` into the
 host lisp.
+
+Care must be taken to load the source as is done by `make-host-1`,
+when the cross-compiler is compiled by the host lisp.  The feature
+`sb-xc-host` should be pushed onto `*features*`.
+
+## What CL symbols does PCL define?
+
+`add-method`, `ensure-generic-function`, `find-class`, `generic-function`
 
 ## What files are relevant to the bootstrap?
 
@@ -157,7 +193,6 @@ Defines the following structures:
 
 *  `wrapper` (`def!struct`)
 *  `standard-funcallable-instance` (`!defstruct-with-alternate-metaclass`)
-   * 
 *  `standard-instance` (`!defstruct-with-alternate-metaclass`)
 *  `%method-function` (`!defstruct-with-alternate-metaclass`)
 
@@ -182,9 +217,26 @@ and target
 
 ## defclass.lisp
 
-Defines the defclass macro
+Defines the defclass macro.
 
 ## defs.lisp
+
+Defines `gdefinition`, the means of getting/setting global function
+definitions.  This is relevant to how the cross-compiler works for
+generics.
+
+Also has some things for converting between types and specializers.
+
+Defines `*built-in-classes*` using `sb!kernel::*built-in-classes*` --
+needs further explanation here.
+
+Defines classes with `def!class`, including `t`, `generic-function`,
+etc.  Since this is intended to compile and cross-compile on the host,
+we should be keeping track of classes so that the class hierarchy can
+be output during genesis, but also declaring classes on the host lisp
+when loading the cross-compiler.
+
+After defining classes, also defines `*early-class-predicates*`.
 
 ## fngen.lisp
 

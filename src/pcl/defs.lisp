@@ -41,7 +41,7 @@
 
 
 #+sb-xc-host
-(defparameter *!xc-gdefinitions* nil)
+(defparameter *xc-host-gdefinitions* nil)
 
 ;#!-sb-fluid (declaim (inline gdefinition))
 #+sb-xc (declaim (inline gdefinition))
@@ -53,8 +53,7 @@ of the generic function named SPEC."
   ;; fwrappers/encapsulations we can do that here.
   #+sb-xc-host
   (progn
-    (error "not supported")
-    (cdr (assoc spec *!xc-gdefinitions* :key 'equal)))
+    (cdr (assoc spec *xc-host-gdefinitions* :key 'equal)))
   #+sb-xc
   (fdefinition spec))
 
@@ -68,12 +67,12 @@ the generic function named SPEC."
   (sb!c::note-name-defined spec :function) ; FIXME: do we need this? Why?
   #+sb-xc-host
   (progn
-    (error "not supported")
-    (locally
-        (declare (type xc-standard-funcallable-instance new-value))
-      (setf  *!xc-gdefinitions*
-             (cons (cons spec new-value)
-                   (remove spec *!xc-gdefinitions* :key #'car :test #'equal)))))
+    ;(locally
+    ;(declare (type xc-standard-funcallable-instance new-value))
+    (setf  *xc-host-gdefinitions*
+           (cons (cons spec new-value)
+                 (remove spec *xc-host-gdefinitions* :key #'car :test #'equal)))
+    (setf (fdefinition spec) new-value))
   #+sb-xc
   (setf (fdefinition spec) new-value))
 
@@ -287,7 +286,9 @@ the generic function named SPEC."
                   ,(if prototype-form
                        (if (and (consp prototype-form)
                                 (eq :cross (car prototype-form)))
+                           ;; FIXME: This is never the case, so get rid of it.
                            (eval prototype-form)
+                           ;; this is always the case
                            `(:late ,prototype-form))
                        ;; This is the default prototype value which
                        ;; was used, without explanation, by the CMU CL
@@ -306,43 +307,43 @@ the generic function named SPEC."
 
 ;;;; the classes that define the kernel of the metabraid
 
-(def!class t () ()
+(sb-xc:defclass t () ()
   (:metaclass built-in-class))
 
-(def!class function (t) ()
+(sb-xc:defclass function (t) ()
   (:metaclass built-in-class))
 
-(def!class stream (t) ()
+(sb-xc:defclass stream (t) ()
   (:metaclass built-in-class))
 
-(def!class file-stream (stream) ()
+(sb-xc:defclass file-stream (stream) ()
   (:metaclass built-in-class))
 
-(def!class string-stream (stream) ()
+(sb-xc:defclass string-stream (stream) ()
   (:metaclass built-in-class))
 
-(def!class slot-object (t) ()
+(sb-xc:defclass slot-object (t) ()
   (:metaclass slot-class))
 
-(def!class condition (slot-object) ()
+(sb-xc:defclass condition (slot-object) ()
   (:metaclass condition-class))
 
-(def!class structure-object (slot-object) ()
+(sb-xc:defclass structure-object (slot-object) ()
   (:metaclass structure-class))
 
 (def!struct (dead-beef-structure-object
             (:constructor |STRUCTURE-OBJECT class constructor|)
             (:copier nil)))
 
-(def!class standard-object (slot-object) ())
+(sb-xc:defclass standard-object (slot-object) ())
 
-(def!class funcallable-standard-object (function standard-object)
+(sb-xc:defclass funcallable-standard-object (function standard-object)
   ()
   (:metaclass funcallable-standard-class))
 
-(def!class metaobject (standard-object) ())
+(sb-xc:defclass metaobject (standard-object) ())
 
-(def!class generic-function (dependent-update-mixin
+(sb-xc:defclass generic-function (dependent-update-mixin
                             definition-source-mixin
                             metaobject
                             funcallable-standard-object)
@@ -365,7 +366,7 @@ the generic function named SPEC."
     :accessor generic-function-initial-methods))
   (:metaclass funcallable-standard-class))
 
-(def!class standard-generic-function (generic-function)
+(sb-xc:defclass standard-generic-function (generic-function)
   ((name
     :initform nil
     :initarg :name
@@ -407,9 +408,9 @@ the generic function named SPEC."
   (:default-initargs :method-class *the-class-standard-method*
                      :method-combination *standard-method-combination*))
 
-(def!class method (metaobject) ())
+(sb-xc:defclass method (metaobject) ())
 
-(def!class standard-method (plist-mixin definition-source-mixin method)
+(sb-xc:defclass standard-method (plist-mixin definition-source-mixin method)
   ((%generic-function :initform nil :accessor method-generic-function)
    (qualifiers :initform () :initarg :qualifiers :reader method-qualifiers)
    (specializers :initform () :initarg :specializers
@@ -418,30 +419,30 @@ the generic function named SPEC."
    (%function :initform nil :initarg :function :reader method-function)
    (%documentation :initform nil :initarg :documentation)))
 
-(def!class accessor-method (standard-method)
+(sb-xc:defclass accessor-method (standard-method)
   ((slot-name :initform nil :initarg :slot-name
               :reader accessor-method-slot-name)))
 
-(def!class standard-accessor-method (accessor-method)
+(sb-xc:defclass standard-accessor-method (accessor-method)
   ((%slot-definition :initform nil :initarg :slot-definition
                      :reader accessor-method-slot-definition)))
 
-(def!class standard-reader-method (standard-accessor-method) ())
-(def!class standard-writer-method (standard-accessor-method) ())
+(sb-xc:defclass standard-reader-method (standard-accessor-method) ())
+(sb-xc:defclass standard-writer-method (standard-accessor-method) ())
 ;;; an extension, apparently.
-(def!class standard-boundp-method (standard-accessor-method) ())
+(sb-xc:defclass standard-boundp-method (standard-accessor-method) ())
 
 ;;; for (SLOT-VALUE X 'FOO) / ACCESSOR-SLOT-VALUE optimization, which
 ;;; can't be STANDARD-READER-METHOD because there is no associated
 ;;; slot definition.
-(def!class global-reader-method (accessor-method) ())
-(def!class global-writer-method (accessor-method) ())
-(def!class global-boundp-method (accessor-method) ())
+(sb-xc:defclass global-reader-method (accessor-method) ())
+(sb-xc:defclass global-writer-method (accessor-method) ())
+(sb-xc:defclass global-boundp-method (accessor-method) ())
 
-(def!class method-combination (metaobject)
+(sb-xc:defclass method-combination (metaobject)
   ((%documentation :initform nil :initarg :documentation)))
 
-(def!class standard-method-combination (definition-source-mixin
+(sb-xc:defclass standard-method-combination (definition-source-mixin
                                        method-combination)
   ((type-name
     :reader method-combination-type-name
@@ -450,7 +451,7 @@ the generic function named SPEC."
     :reader method-combination-options
     :initarg :options)))
 
-(def!class long-method-combination (standard-method-combination)
+(sb-xc:defclass long-method-combination (standard-method-combination)
   ((function
     :initarg :function
     :reader long-method-combination-function)
@@ -458,7 +459,7 @@ the generic function named SPEC."
     :initarg :args-lambda-list
     :reader long-method-combination-args-lambda-list)))
 
-(def!class short-method-combination (standard-method-combination)
+(sb-xc:defclass short-method-combination (standard-method-combination)
   ((operator
     :reader short-combination-operator
     :initarg :operator)
@@ -466,7 +467,7 @@ the generic function named SPEC."
     :reader short-combination-identity-with-one-argument
     :initarg :identity-with-one-argument)))
 
-(def!class slot-definition (metaobject)
+(sb-xc:defclass slot-definition (metaobject)
   ((name
     :initform nil
     :initarg :name
@@ -502,7 +503,7 @@ the generic function named SPEC."
     :reader %slot-definition-documentation)
    (%class :initform nil :initarg :class :accessor slot-definition-class)))
 
-(def!class standard-slot-definition (slot-definition)
+(sb-xc:defclass standard-slot-definition (slot-definition)
   ((allocation
     :initform :instance
     :initarg :allocation
@@ -512,7 +513,7 @@ the generic function named SPEC."
     :initarg :allocation-class
     :accessor slot-definition-allocation-class)))
 
-(def!class condition-slot-definition (slot-definition)
+(sb-xc:defclass condition-slot-definition (slot-definition)
   ((allocation
     :initform :instance
     :initarg :allocation
@@ -522,7 +523,7 @@ the generic function named SPEC."
     :initarg :allocation-class
     :accessor slot-definition-allocation-class)))
 
-(def!class structure-slot-definition (slot-definition)
+(sb-xc:defclass structure-slot-definition (slot-definition)
   ((defstruct-accessor-symbol
      :initform nil
      :initarg :defstruct-accessor-symbol
@@ -536,10 +537,10 @@ the generic function named SPEC."
      :initarg :internal-writer-function
      :accessor slot-definition-internal-writer-function)))
 
-(def!class direct-slot-definition (slot-definition)
+(sb-xc:defclass direct-slot-definition (slot-definition)
   ())
 
-(def!class effective-slot-definition (slot-definition)
+(sb-xc:defclass effective-slot-definition (slot-definition)
   ((reader-function ; (lambda (object) ...)
     :accessor slot-definition-reader-function)
    (writer-function ; (lambda (new-value object) ...)
@@ -549,33 +550,33 @@ the generic function named SPEC."
    (accessor-flags
     :initform 0)))
 
-(def!class standard-direct-slot-definition (standard-slot-definition
+(sb-xc:defclass standard-direct-slot-definition (standard-slot-definition
                                            direct-slot-definition)
   ())
 
-(def!class standard-effective-slot-definition (standard-slot-definition
+(sb-xc:defclass standard-effective-slot-definition (standard-slot-definition
                                               effective-slot-definition)
   ((location ; nil, a fixnum, a cons: (slot-name . value)
     :initform nil
     :accessor slot-definition-location)))
 
-(def!class condition-direct-slot-definition (condition-slot-definition
+(sb-xc:defclass condition-direct-slot-definition (condition-slot-definition
                                             direct-slot-definition)
   ())
 
-(def!class condition-effective-slot-definition (condition-slot-definition
+(sb-xc:defclass condition-effective-slot-definition (condition-slot-definition
                                                effective-slot-definition)
   ())
 
-(def!class structure-direct-slot-definition (structure-slot-definition
+(sb-xc:defclass structure-direct-slot-definition (structure-slot-definition
                                             direct-slot-definition)
   ())
 
-(def!class structure-effective-slot-definition (structure-slot-definition
+(sb-xc:defclass structure-effective-slot-definition (structure-slot-definition
                                                effective-slot-definition)
   ())
 
-(def!class specializer (metaobject)
+(sb-xc:defclass specializer (metaobject)
   ;; KLUDGE: in sbcl-0.9.10.2 this was renamed from TYPE, which was an
   ;; external symbol of the CL package and hence potentially collides
   ;; with user code.  Renaming this to %TYPE, however, is the coward's
@@ -589,25 +590,25 @@ the generic function named SPEC."
 ;;; STANDARD in this name doesn't mean "blessed by a standard" but
 ;;; "comes as standard with PCL"; that is, it includes CLASS-EQ
 ;;; and vestiges of PROTOTYPE specializers
-(def!class standard-specializer (specializer) ())
+(sb-xc:defclass standard-specializer (specializer) ())
 
-(def!class specializer-with-object (specializer) ())
+(sb-xc:defclass specializer-with-object (specializer) ())
 
-(def!class exact-class-specializer (specializer) ())
+(sb-xc:defclass exact-class-specializer (specializer) ())
 
-(def!class class-eq-specializer (standard-specializer
+(sb-xc:defclass class-eq-specializer (standard-specializer
                                 exact-class-specializer
                                 specializer-with-object)
   ((object :initarg :class
            :reader specializer-class
            :reader specializer-object)))
 
-(def!class class-prototype-specializer (standard-specializer specializer-with-object)
+(sb-xc:defclass class-prototype-specializer (standard-specializer specializer-with-object)
   ((object :initarg :class
            :reader specializer-class
            :reader specializer-object)))
 
-(def!class eql-specializer (standard-specializer exact-class-specializer specializer-with-object)
+(sb-xc:defclass eql-specializer (standard-specializer exact-class-specializer specializer-with-object)
   ((object :initarg :object :reader specializer-object
            :reader eql-specializer-object)))
 
@@ -624,7 +625,7 @@ the generic function named SPEC."
         (setf (gethash object *eql-specializer-table*)
               (make-instance 'eql-specializer :object object)))))
 
-(def!class class (dependent-update-mixin
+(sb-xc:defclass class (dependent-update-mixin
                  definition-source-mixin
                  standard-specializer)
   ((name
@@ -670,7 +671,7 @@ the generic function named SPEC."
 
 ;;; The class PCL-CLASS is an implementation-specific common
 ;;; superclass of all specified subclasses of the class CLASS.
-(def!class pcl-class (class)
+(sb-xc:defclass pcl-class (class)
   ((%class-precedence-list
     :reader class-precedence-list)
    ;; KLUDGE: see note in CPL-OR-NIL
@@ -690,7 +691,7 @@ the generic function named SPEC."
     :initform nil
     :reader class-prototype)))
 
-(def!class slot-class (pcl-class)
+(sb-xc:defclass slot-class (pcl-class)
   ((direct-slots
     :initform ()
     :reader class-direct-slots)
@@ -701,40 +702,40 @@ the generic function named SPEC."
 ;;; The class STD-CLASS is an implementation-specific common
 ;;; superclass of the classes STANDARD-CLASS and
 ;;; FUNCALLABLE-STANDARD-CLASS.
-(def!class std-class (slot-class)
+(sb-xc:defclass std-class (slot-class)
   ())
 
-(def!class standard-class (std-class)
+(sb-xc:defclass standard-class (std-class)
   ()
   (:default-initargs
    :direct-superclasses (list *the-class-standard-object*)))
 
-(def!class funcallable-standard-class (std-class)
+(sb-xc:defclass funcallable-standard-class (std-class)
   ()
   (:default-initargs
    :direct-superclasses (list *the-class-funcallable-standard-object*)))
 
-(def!class forward-referenced-class (pcl-class) ())
+(sb-xc:defclass forward-referenced-class (pcl-class) ())
 
-(def!class built-in-class (pcl-class) ())
+(sb-xc:defclass built-in-class (pcl-class) ())
 
-(def!class condition-class (slot-class) ())
+(sb-xc:defclass condition-class (slot-class) ())
 
-(def!class structure-class (slot-class)
+(sb-xc:defclass structure-class (slot-class)
   ((defstruct-form :initform () :accessor class-defstruct-form)
    (defstruct-constructor :initform nil :accessor class-defstruct-constructor)
    (from-defclass-p :initform nil :initarg :from-defclass-p)))
 
-(def!class definition-source-mixin (standard-object)
+(sb-xc:defclass definition-source-mixin (standard-object)
   ((source
     :initform nil
     :reader definition-source
     :initarg :definition-source)))
 
-(def!class plist-mixin (standard-object)
+(sb-xc:defclass plist-mixin (standard-object)
   ((plist :initform () :accessor object-plist :initarg plist)))
 
-(def!class dependent-update-mixin (plist-mixin) ())
+(sb-xc:defclass dependent-update-mixin (plist-mixin) ())
 
 (defparameter *early-class-predicates*
   '((specializer specializerp)

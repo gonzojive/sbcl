@@ -1930,7 +1930,7 @@ EARLY-METHOD."
                                specializers initargs documentation
                                :definition-source definition-source)))
        (when existing (remove-method gf existing))
-       (add-method gf new)))))
+       (add-method gf new))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

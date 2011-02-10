@@ -407,7 +407,7 @@
   (member '&key (gf-lambda-list generic-function)))
 
 (define-early-generic (compute-effective-method standard-compute-effective-method)
-    ((generic-function standard-generic-function) (combin standard-method-combination) applicable-methods)
+    ((generic-function generic-function) (combin standard-method-combination) applicable-methods)
   (collect ((before) (primary) (after) (around))
     (flet ((invalid (gf combin m) (invalid-qualifiers gf combin m)))
       (dolist (m applicable-methods)

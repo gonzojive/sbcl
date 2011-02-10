@@ -222,7 +222,7 @@
        ;; There are two valid cases here: creating the
        ;; STRUCTURE!OBJECT root of the inheritance hierarchy, or
        ;; inheriting from STRUCTURE!OBJECT somehow.
-      ;;
+       ;;
        ;; The invalid case that we want to exclude is when an :INCLUDE
        ;; clause was used, and the included class didn't inherit frmo
        ;; STRUCTURE!OBJECT. We want to catch that error ASAP because

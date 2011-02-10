@@ -32,6 +32,20 @@
 (defvar *writers-for-this-defclass*)
 (defvar *slot-names-for-this-defclass*)
 
+;;; 
+;; (defmacro def!class (name direct-superclasses direct-slots &rest options)
+;;   ;; FIXME: this does not work as written.  We need to take care to
+;;   ;; emit a CL:DEFCLASS form for sb-xc-host (when we are building the
+;;   ;; cross-compiler).  But when we are cross-compiling SBCL we must
+;;   ;; keep track of the class hierarchy and who knows what else so that
+;;   ;; genesis can re-assemble 
+;;   #+sb-xc-host
+;;   `(defclass ,name ,direct-superclasses ,direct-slots ,@options)
+;;   #-sb-xc-host
+;;   `(sb-xc:defclass ,name ,direct-superclasses ,direct-slots ,@options))
+
+;;; The CL:DEFCLASS macro, but available
+;;;
 ;;; Like the DEFMETHOD macro, the expansion of the DEFCLASS macro is
 ;;; fixed. DEFCLASS always expands into a call to LOAD-DEFCLASS. Until
 ;;; the meta-braid is set up, LOAD-DEFCLASS has a special definition
@@ -41,9 +55,6 @@
 ;;; After the metabraid has been setup, and the protocol for defining
 ;;; classes has been defined, the real definition of LOAD-DEFCLASS is
 ;;; installed by the file std-class.lisp
-(defmacro def!class (name direct-superclasses direct-slots &rest options)
-  `(sb-xc:defclass ,name ,direct-superclasses ,direct-slots ,@options))
-
 (defmacro sb-xc:defclass (&environment env name direct-superclasses direct-slots &rest options)
   #+sb-xc-host
   (declare (optimize (debug 3)))
@@ -80,7 +91,8 @@
                                 ',*slot-names-for-this-defclass*
                                 (sb!c:source-location)
                                 ',(safe-code-p env)))))
-        (if defstruct-p
+        (cond
+          (defstruct-p
             #+sb-xc-host
             (error "DEFCLASS does not accept DEFSTRUCT-P on the host.")
             #-sb-xc-host
@@ -107,25 +119,26 @@
                    (eval-when (:compile-toplevel :load-toplevel :execute)
                      ,defstruct-form) ; really compile the defstruct-form
                    (eval-when (:compile-toplevel :load-toplevel :execute)
-                     ,defclass-form))))
-            `(progn
-               ;; By telling the type system at compile time about
-               ;; the existence of a class named NAME, we can avoid
-               ;; various bogus warnings about "type isn't defined yet"
-               ;; for code elsewhere in the same file which uses
-               ;; the name of the type.
-               ;;
-               ;; We only need to do this at compile time, because
-               ;; at load and execute time we write the actual
-               ;; full-blown class, so the "a class of this name is
-               ;; coming" note we write here would be irrelevant.
-               (eval-when (:compile-toplevel)
-                 (%compiler-defclass ',name
-                                     ',*readers-for-this-defclass*
-                                     ',*writers-for-this-defclass*
-                                     ',*slot-names-for-this-defclass*))
-               (eval-when (:load-toplevel :execute)
-                 ,defclass-form))))))))
+                     ,defclass-form)))))
+          (t
+           `(progn
+              ;; By telling the type system at compile time about
+              ;; the existence of a class named NAME, we can avoid
+              ;; various bogus warnings about "type isn't defined yet"
+              ;; for code elsewhere in the same file which uses
+              ;; the name of the type.
+              ;;
+              ;; We only need to do this at compile time, because
+              ;; at load and execute time we write the actual
+              ;; full-blown class, so the "a class of this name is
+              ;; coming" note we write here would be irrelevant.
+              (eval-when (:compile-toplevel)
+                (%compiler-defclass ',name
+                                    ',*readers-for-this-defclass*
+                                    ',*writers-for-this-defclass*
+                                    ',*slot-names-for-this-defclass*))
+              (eval-when (:load-toplevel :execute)
+                ,defclass-form)))))))))
 
 (defun canonize-defclass-options (class-name options)
   (maplist (lambda (sublist)
