@@ -129,8 +129,8 @@ the generic function named SPEC."
           *the-class-t*
           (error "bad argument to TYPE-CLASS"))
       (case (car type)
-        (eql (class-of (cadr type)))
-        (prototype (class-of (cadr type))) ;?
+        (eql (sb-xc:class-of (cadr type)))
+        (prototype (sb-xc:class-of (cadr type))) ;?
         (class-eq (cadr type))
         (class (cadr type)))))
 

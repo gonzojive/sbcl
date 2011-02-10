@@ -222,7 +222,7 @@ ENV is the environment in which the defmethod is being expanded.
           ,(make-defmethod-form name qualifiers specializers-form
                                 unspecialized-lambda-list
                                 (if proto-method
-                                    (class-name (class-of proto-method))
+                                    (class-name (sb-xc:class-of proto-method))
                                     'standard-method)
                                 initargs-form))))))
 
@@ -1464,7 +1464,7 @@ function designated by GF-SPEC, and returns the method."
                        :definition-source source-location
                        initargs)))
     (unless (or (eq method-class 'standard-method)
-                (eq (sb-xc:find-class method-class nil) (class-of method)))
+                (eq (sb-xc:find-class method-class nil) (sb-xc:class-of method)))
       (warn 'simple-style-warning
             :format-control
             "~&At the time the method with qualifiers ~:S and~%~
@@ -1475,7 +1475,7 @@ function designated by GF-SPEC, and returns the method."
             :format-arguments
             (list qualifiers specializers gf-spec
                   method-class
-                  (class-name (class-of method)))))
+                  (class-name (sb-xc:class-of method)))))
     method))
 
 (defun make-method-spec (gf qualifiers specializers)
@@ -1603,7 +1603,7 @@ information available for the given function to supplement."
 
 ;;; avoid infinite recursion, I assume -- RED 08/2010
 (defun safe-method-specializers (method)
-  (if (member (class-of method) **standard-method-classes** :test #'eq)
+  (if (member (sb-xc:class-of method) **standard-method-classes** :test #'eq)
       (clos-slots-ref (std-instance-slots method) +sm-specializers-index+)
       (method-specializers method)))
 (defun safe-method-fast-function (method)
@@ -1611,11 +1611,11 @@ information available for the given function to supplement."
     (and (typep mf '%method-function)
          (%method-function-fast-function mf))))
 (defun safe-method-function (method)
-  (if (member (class-of method) **standard-method-classes** :test #'eq)
+  (if (member (sb-xc:class-of method) **standard-method-classes** :test #'eq)
       (clos-slots-ref (std-instance-slots method) +sm-%function-index+)
       (method-function method)))
 (defun safe-method-qualifiers (method)
-  (if (member (class-of method) **standard-method-classes** :test #'eq)
+  (if (member (sb-xc:class-of method) **standard-method-classes** :test #'eq)
       (clos-slots-ref (std-instance-slots method) +sm-qualifiers-index+)
       (method-qualifiers method)))
 
@@ -1639,7 +1639,7 @@ information available for the given function to supplement."
                                  (safe-method-specializers method)
                                  (early-method-specializers method t)))
                (class (if (or (eq **boot-state** 'complete) (not (consp method)))
-                          (class-of method)
+                          (sb-xc:class-of method)
                           (early-method-class method)))
                (new-type
                 (when (and class

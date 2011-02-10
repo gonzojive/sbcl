@@ -513,7 +513,7 @@ CLASS-NAME's slot's vector"
   (!bootstrap-get-slot 'pcl-class class '%class-precedence-list))
 
 (defun early-class-name-of (instance)
-  (early-class-name (class-of instance)))
+  (early-class-name (sb-xc:class-of instance)))
 
 (defun early-class-slotds (class)
   (!bootstrap-get-slot 'slot-class class 'slots))

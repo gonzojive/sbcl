@@ -664,8 +664,7 @@ generic functions for which accessors are to be defined."
 (defun wrapper-of (x)
   (layout-of x))
 
-#+sb-xc
-(defun class-of (x)
+(defun sb-xc:class-of (x)
   (wrapper-class* (wrapper-of x)))
 
 (defun eval-form (form)

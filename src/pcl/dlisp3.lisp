@@ -23,6 +23,14 @@
 
 (in-package "SB-PCL")
 
+
+;; Defines what signatures warrant a cached effective method defintion.
+;; Each member of this list is of the form (cached-emf-p return-value-p metatypes applyp)
+;;
+;; CACHED-EMF-P    -- t if should cache, nil otherwise
+;; RETURN-VALUE-P  -- ?
+;; METATYPES       -- argument metatypes
+;; APPLYP          -- ?
 (eval-when (:compile-toplevel :load-toplevel :execute)
 (defparameter *checking-or-caching-list*
   '((t nil (class) nil)

@@ -645,7 +645,7 @@ the generic function GF and wrapper WRAPPER."
      (declare (ignore position))
      (let* ((type-test-cost
              (if (eq 'class (car type))
-                 (let* ((metaclass (class-of (cadr type)))
+                 (let* ((metaclass (sb-xc:class-of (cadr type)))
                         (mcpl (class-precedence-list metaclass)))
                    (cond ((memq *the-class-built-in-class* mcpl)
                           *built-in-typep-cost*)
@@ -778,17 +778,17 @@ the generic function GF and wrapper WRAPPER."
          (slot-name (early-method-standard-accessor-slot-name (car methods))))
     (ecase type
       (reader #'(lambda (instance)
-                  (let* ((class (class-of instance))
+                  (let* ((class (sb-xc:class-of instance))
                          (class-name (!bootstrap-get-slot 'class class 'name)))
                     (!bootstrap-get-slot class-name instance slot-name))))
       (boundp #'(lambda (instance)
-                  (let* ((class (class-of instance))
+                  (let* ((class (sb-xc:class-of instance))
                          (class-name (!bootstrap-get-slot 'class class 'name)))
                     (not (eq +slot-unbound+
                              (!bootstrap-get-slot class-name
                                                   instance slot-name))))))
       (writer #'(lambda (new-value instance)
-                  (let* ((class (class-of instance))
+                  (let* ((class (sb-xc:class-of instance))
                          (class-name (!bootstrap-get-slot 'class class 'name)))
                     (!bootstrap-set-slot class-name instance slot-name new-value)))))))
 
@@ -1505,7 +1505,7 @@ the generic function GF and wrapper WRAPPER."
 
 (defun saut-not-prototype (specl ntype)
   (let* ((class (case (car specl)
-                  (eql       (class-of (cadr specl)))
+                  (eql       (sb-xc:class-of (cadr specl)))
                   (class-eq  (cadr specl))
                   (prototype (cadr specl))
                   (class     (cadr specl))))
@@ -1514,7 +1514,7 @@ the generic function GF and wrapper WRAPPER."
 
 (defun saut-not-class-eq (specl ntype)
   (let ((class (case (car specl)
-                 (eql      (class-of (cadr specl)))
+                 (eql      (sb-xc:class-of (cadr specl)))
                  (class-eq (cadr specl)))))
     (not (eq class (cadr ntype)))))
 
@@ -1550,7 +1550,7 @@ the generic function GF and wrapper WRAPPER."
 
 (defun saut-class-eq (specl type)
   (if (eq (car specl) 'eql)
-      (values nil (eq (class-of (cadr specl)) (cadr type)))
+      (values nil (eq (sb-xc:class-of (cadr specl)) (cadr type)))
       (let ((pred (case (car specl)
                     (class-eq
                      (eq (cadr specl) (cadr type)))
@@ -1566,9 +1566,9 @@ the generic function GF and wrapper WRAPPER."
 (defun saut-eql (specl type)
   (let ((pred (case (car specl)
                 (eql    (eql (cadr specl) (cadr type)))
-                (class-eq   (eq (cadr specl) (class-of (cadr type))))
+                (class-eq   (eq (cadr specl) (sb-xc:class-of (cadr type))))
                 (class      (memq (cadr specl)
-                                  (let ((class (class-of (cadr type))))
+                                  (let ((class (sb-xc:class-of (cadr type))))
                                     (cpl-or-nil class)))))))
     (values pred pred)))
 

@@ -248,17 +248,24 @@ The PCL version of a layout.  Actually a wrapper inherits from layout.
 
 ## dlisp.lisp
 
-Why is it called dlisp?
+Why is it called dlisp?  Don't know.
+
+Defined in this file are a bunch of functions that start with `emit-`
+and end in things like `one-class-reader` `two-class-reader`
+`two-class-boundp`.  These are functions that return lambda forms used
+in the process of defining accessors, readers, writers, boundp
+functions, and other funcallable things.
+
 
 ## boot.lisp
 
-Boot.lisp is much too big and varied and should be split up to make the
-system more understandable.  It defines both defmethod and defgeneric,
-and the early and late versions of functions related to almost all
-aspects of the system.  Top-level forms are somewhat scattered.  There
-are terrible function names like `set-arg-info1` which are totally
-undocumented.  This is _the_ file to refactor for understanability in
-PCL.
+Boot.lisp is much too big and varied and should be split up to make
+the system more understandable.  It used to define both `defmethod` and
+`defgeneric`, and the early and late versions of functions related to
+almost all aspects of the system.  Top-level forms are somewhat
+scattered.  There are terrible function names like `set-arg-info1`
+which are totally undocumented.  This is _the_ file to refactor for
+understanability in PCL.
 
 ## vector.lisp
 

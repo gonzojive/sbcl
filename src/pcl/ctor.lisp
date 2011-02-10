@@ -937,7 +937,7 @@
              (loop-finish)))
       ;; GENERIC-FUNCTION and METHOD must have been specified.
       ((add-method remove-method)
-       (flet ((class-of-1st-method-param (method)
+       (flet ((sb-xc:class-of-1st-method-param (method)
                 (type-class (first (method-specializers method)))))
          (case (generic-function-name generic-function)
            ((make-instance allocate-instance)
@@ -950,9 +950,9 @@
             ;; 2010-07-13
             (reset (sb-xc:find-class 'standard-object) t t))
            ((initialize-instance shared-initialize)
-            (reset (class-of-1st-method-param method) t t))
+            (reset (sb-xc:class-of-1st-method-param method) t t))
            ((reinitialize-instance)
-            (reset (class-of-1st-method-param method) t nil))
+            (reset (sb-xc:class-of-1st-method-param method) t nil))
            (t (when (or (eq (generic-function-name generic-function)
                             'slot-boundp-using-class)
                         (equal (generic-function-name generic-function)
@@ -1016,7 +1016,7 @@
       (error 'initarg-error :class class :initargs invalid-keys))))
 
 (defun check-ri-initargs (instance initargs)
-  (let* ((class (class-of instance))
+  (let* ((class (sb-xc:class-of instance))
          (keys (plist-keys initargs))
          (cache (plist-value class 'ri-initargs))
          (cached (assoc keys cache :test #'equal))

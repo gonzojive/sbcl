@@ -70,8 +70,8 @@
       (let ((owrap (class-wrapper class)))
         (cond (owrap
                (layout-classoid owrap))
-              ((or (*subtypep (class-of class) *the-class-standard-class*)
-                   (*subtypep (class-of class) *the-class-funcallable-standard-class*)
+              ((or (*subtypep (sb-xc:class-of class) *the-class-standard-class*)
+                   (*subtypep (sb-xc:class-of class) *the-class-funcallable-standard-class*)
                    (typep class 'forward-referenced-class))
                (cond ((and *pcl-class-boot*
                            (eq (slot-value class 'name) *pcl-class-boot*))
@@ -177,7 +177,7 @@
              ;;    previous call to REGISTER-LAYOUT for a superclass of
              ;;    INSTANCE's class.  See also the comment above
              ;;    FORCE-CACHE-FLUSHES.  Paul Dietz has test cases for this.
-             (%force-cache-flushes (class-of instance))
+             (%force-cache-flushes (sb-xc:class-of instance))
              ;; KLUDGE avoid an infinite recursion, it's still better to
              ;; bail out with an AVER for server softwares. see FIXME above.
              ;; details: http://thread.gmane.org/gmane.lisp.steel-bank.devel/10175
@@ -247,7 +247,7 @@
              (let* ((specializer-class (if (eq **boot-state** 'complete)
                                            (specializer-class-or-nil x)
                                            x))
-                   (meta-specializer (class-of specializer-class)))
+                   (meta-specializer (sb-xc:class-of specializer-class)))
                (cond
                  ((eq x *the-class-t*) t)
                  ((not specializer-class) 'non-standard)
