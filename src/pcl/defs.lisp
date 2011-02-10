@@ -307,6 +307,30 @@ the generic function named SPEC."
 
 ;;;; the classes that define the kernel of the metabraid
 
+;; TODO: decide what sort of support is needed for these classes in
+;; each of the following contexts:
+;;
+;; - build-the-cross-compiler-time: Do we need to be able to make
+;;   instances of these classes in the host lisp when building the
+;;   cross-compiler?  If so, we probably want to DEFCLASS them as
+;;   sb-xc:t, sb-xc:functio, etc.  To glean insight, What sort of
+;;   structures are defined as host-lisp structures?
+;; 
+;; - cross-compile-SBCL-time: when cross-compiling SBCL's sources,
+;;   what classes are needed?  Pretty much everything here I think is
+;;   the answer to that question.  How to come by the class
+;;   definitions is another question.  While traditionally these
+;;   classes were defined with PCL's defclass in a warm lisp, we are
+;;   now attempting to cross-compile class definitions.  
+;; 
+;; In answering the question above, it will help to figure out what
+;; PCL expects of class definitions as it goes through the
+;; bootstrapping process.  We also need to think about the goals of
+;; getting CLOS into cold-init.
+;;
+;; On the later point, 
+
+
 (sb-xc:defclass t () ()
   (:metaclass built-in-class))
 

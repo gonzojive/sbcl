@@ -88,6 +88,8 @@ implementations of everything.
 Please see the "Cross-compiling PCL" thread from the SBCL mailing list
 on 8/28/2010.
 
+### Road map 1
+
 Here is a slightly unjustified initial stab at a roadmap:
 
 1. Define macros named according to the clever things PCL does for
@@ -103,6 +105,7 @@ early/late definition of functions
 
 6. Write genesis/!cold-init code for PCL, and wade into cold init land
 
+### Road map 2
 Here is the more thoughtful rumination on what ought to be done:
 
 The goal is to perform all the bootstrapping that PCL initially did
@@ -132,6 +135,67 @@ actually serve a purpose in the compiler, like a hypothetical
 `control-flow-graph` class, should use `defclass` so that the class
 exists in the cross-compiler, too.
 
+### Dumping the class hierarchy
+
+A first milestone, suggested by Christophe Rhodes, is to get to the
+point where the class hierarchy can be dumped by genesis, similarly to
+how the current hierarchy of structures is dumped by genesis.
+
+We must decide what sort of support is needed for classes like T,
+FUNCTION, STANDARD-CLASS, in each of the following contexts:
+
+- build-the-cross-compiler-time: Do we need to be able to make
+   instances of these classes in the host lisp when building the
+   cross-compiler?  If so, we probably want to DEFCLASS them as
+   sb-xc:t, sb-xc:functio, etc.  To glean insight, What sort of
+   structures are defined as host-lisp structures?
+- cross-compile-SBCL-time: when cross-compiling SBCL's sources,
+   what classes are needed?  Pretty much everything here I think is
+   the answer to that question.  How to come by the class
+   definitions is another question.  While traditionally these
+   classes were defined with PCL's defclass in a warm lisp, we are
+   now attempting to cross-compile class definitions.  
+
+In answering the question above, it will help to figure out what
+PCL expects of class definitions as it goes through the
+bootstrapping process.  We also need to think about the goals of
+getting CLOS into cold-init.
+
+### The latest plan
+
+CLOS is being put into cold-init so that CLOS can be used in SBCL's
+compiler.  This will allow a wave a refactorings that give SBCL a more
+object-oriented design and generally make life happier for the SBCL
+developer.  As it stands, CLOS requires COMPILE to work in the target
+in order to get CLOS working in the target.  This means that COMPILER
+pretty much cannot use CLOS, because CLOS requires COMPILE.  The goal
+is to have generic functions, methods, classes, and the like littered
+throughout the compiler, and after cold-init runs in the target, the
+compiler is fully ready to compile code on the target using its CLOS
+internals.
+
+Perhaps a more challenging task than dumping classes in genesis will
+be figuring out how on earth to cross-compile generic functions and
+methods.  Perhaps this can be approached from the angle of "do
+whatever it takes to eliminate any calls to COMPILE."  Find every call
+to compile, and work backward from there.  Currently there are some
+calls in `dlisp.lisp` `fngen.lisp` and `ctor.lisp`.  Tracing these
+back to the fundamental components of the MOP sounds like the most
+tractable plan yet for figuring out this hairy mess.
+
+#### What calls `COMPILE`?
+
+Most immediately, only `dlisp.lisp` `fngen.lisp` and `ctor.lisp`
+appear to call `COMPILE` directly, though we may need to look around
+for calls to `eval` and other friends that are not really available
+when cross-compiling.
+
+`EVAL` appears to be called from the following files:
+`defmethod.lisp`, `defclass.lisp`, `time.lisp`, `env.lisp`,
+`defs.lisp`, `low.lisp??`, `ctor.lisp`, `braid.lisp`,
+`std-class.lisp`.  Yikes!
+
+
 ## How to develop and debug with minimal pain
 
 A fair amount of the development, at least at first, is making things
@@ -148,7 +212,7 @@ when the cross-compiler is compiled by the host lisp.  The feature
 
 ## What CL symbols does PCL define?
 
-`add-method`, `ensure-generic-function`, `find-class`, `generic-function`
+`add-method`, `ensure-generic-function`, `find-class`, `generic-function`, `class-of`
 
 ## What files are relevant to the bootstrap?
 

@@ -176,7 +176,7 @@
 (defun print-std-instance (instance stream depth)
   (declare (ignore depth))
   (print-unreadable-object (instance stream :type t :identity t)
-    (let ((class (class-of instance)))
+    (let ((class (sb-xc:class-of instance)))
       (when (or (eq class (sb-xc:find-class 'standard-class nil))
                 (eq class (sb-xc:find-class 'funcallable-standard-class nil))
                 (eq class (sb-xc:find-class 'built-in-class nil)))
@@ -227,7 +227,7 @@
     (funcallable-instance ;; KLUDGE: probably a generic function...
      (cond ((if (eq **boot-state** 'complete)
                 (typep fun 'generic-function)
-                (eq (class-of fun) *the-class-standard-generic-function*))
+                (eq (sb-xc:class-of fun) *the-class-standard-generic-function*))
             (setf (%funcallable-instance-info fun 2) new-name))
            (t
             (bug "unanticipated function type")))))
@@ -240,6 +240,7 @@
   fun)
 
 ;;; FIXME -- ensure this is not needed on the target
+#+sb-xc-host
 (defun set-fun-name (fun new-name)
   #!+sb-doc
   "Set the name of a compiled function object. Return the function."

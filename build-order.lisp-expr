@@ -794,7 +794,7 @@
  ("src/pcl/combin"             )
  ("src/pcl/dfun"               )
  ("src/pcl/ctor"               )
- ("src/pcl/braid"              :not-host)
+ ("src/pcl/braid"              )
  ("src/pcl/dlisp3"             :not-host :warm)
  ("src/pcl/generic-functions"  :not-host :warm)
  ("src/pcl/slots"              :not-host :warm)

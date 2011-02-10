@@ -32,13 +32,13 @@
 (defvar *writers-for-this-defclass*)
 (defvar *slot-names-for-this-defclass*)
 
-;;; 
+;;;
 ;; (defmacro def!class (name direct-superclasses direct-slots &rest options)
 ;;   ;; FIXME: this does not work as written.  We need to take care to
 ;;   ;; emit a CL:DEFCLASS form for sb-xc-host (when we are building the
 ;;   ;; cross-compiler).  But when we are cross-compiling SBCL we must
 ;;   ;; keep track of the class hierarchy and who knows what else so that
-;;   ;; genesis can re-assemble 
+;;   ;; genesis can re-assemble
 ;;   #+sb-xc-host
 ;;   `(defclass ,name ,direct-superclasses ,direct-slots ,@options)
 ;;   #-sb-xc-host

@@ -515,6 +515,7 @@ instance to use for this slot definition."
   #!+sb-doc
   "!bootstrap-ensure-generic-function works on early-generic functions
 before they have been converted into first-order generics."
+  (declare (ignore environment source-location))
   (apply 'sb-xc:ensure-generic-function fun-name all-keys))
 
 (defun !bootstrap-add-method (generic-function method)
@@ -637,17 +638,17 @@ generic functions for which accessors are to be defined."
 
   ;; In the first pass, we create a skeletal object to be bound to the
   ;; class name.
-  (let* ((the-class-built-in-class (sb-xc!find-class 'built-in-class))
+  (let* ((the-class-built-in-class (sb-xc:find-class 'built-in-class))
          (the-class-built-in-class-wrapper (class-wrapper the-class-built-in-class)))
     (dolist (e *built-in-classes*)
       (let ((class (allocate-standard-instance the-class-built-in-class-wrapper)))
-        (setf (sb-xc!find-class (car e)) class))))
+        (setf (sb-xc:find-class (car e)) class))))
 
   ;; In the second pass, we initialize the class objects.
-  (let ((class-eq-wrapper (class-wrapper (sb-xc!find-class 'class-eq-specializer))))
+  (let ((class-eq-wrapper (class-wrapper (sb-xc:find-class 'class-eq-specializer))))
     (dolist (e *built-in-classes*)
       (destructuring-bind (name supers subs cpl prototype) e
-        (let* ((class (sb-xc!find-class name))
+        (let* ((class (sb-xc:find-class name))
                (lclass (find-classoid name))
                (wrapper (classoid-layout lclass)))
           (set (get-built-in-class-symbol name) class)
